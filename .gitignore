@@ -24,3 +24,6 @@ temp/
 
 # Keys folder (private keys must never be committed)
 keys/*.biprivatekey
+
+# DayZ Source code
+dayz/
