@@ -11,16 +11,14 @@ set "_envfile=%~dp0.env"
 if not exist "!_envfile!" goto :skip_env
 REM Use a temp file to safely handle paths with parentheses
 findstr /i /b "DAYZ_SERVER=" "!_envfile!" > "%TEMP%\_dayz_env.tmp" 2>nul
-if exist "%TEMP%\_dayz_env.tmp" (
-    set /p _dayzline=<"%TEMP%\_dayz_env.tmp"
-    del "%TEMP%\_dayz_env.tmp" >nul 2>&1
-    if defined _dayzline (
-        REM Skip first 12 characters (DAYZ_SERVER=)
-        set "DAYZ_SERVER=!_dayzline:~12!"
-        REM Remove surrounding quotes if present
-        if defined DAYZ_SERVER set "DAYZ_SERVER=!DAYZ_SERVER:"=!"
-    )
-)
+if not exist "%TEMP%\_dayz_env.tmp" goto :skip_env
+set /p _dayzline=<"%TEMP%\_dayz_env.tmp"
+del "%TEMP%\_dayz_env.tmp" >nul 2>&1
+if not defined _dayzline goto :skip_env
+REM Skip first 12 characters (DAYZ_SERVER=)
+set "DAYZ_SERVER=!_dayzline:~12!"
+REM Remove surrounding quotes if present
+if defined DAYZ_SERVER set "DAYZ_SERVER=!DAYZ_SERVER:"=!"
 :skip_env
 
 REM Configuration
