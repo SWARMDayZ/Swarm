@@ -34,3 +34,9 @@ keys/*.biprivatekey
 
 # DayZ Source code
 dayz/
+
+# steamcmd related
+workshop_upload.vdf
+scripts/*
+!scripts/*.ps1
+!scripts/steamcmd.exe

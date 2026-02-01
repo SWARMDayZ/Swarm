@@ -41,7 +41,11 @@ Swarm/
 │       ├── Keys/           # Public signing key
 │       └── meta.cpp
 ├── keys/                   # Signing keys (private key gitignored)
-├── scripts/                # Build helper scripts
+├── scripts/                # Build helper scripts + steamcmd.exe
+├── validation/             # Script validation configuration
+│   ├── mods/               # Dependency mods for validation
+│   ├── serverDZ.cfg        # Custom server config (gitignored)
+│   └── serverDZ.default.cfg # Default validation config
 ├── .github/workflows/      # CI/CD pipelines
 └── *.bat                   # Build scripts
 ```
@@ -52,17 +56,30 @@ Swarm/
 - **DayZ Tools** - Install via Steam (free with DayZ ownership)
 - **Windows** - Build scripts are Windows batch files
 
+### Optional (for script validation)
+- **DayZ Server** - Required for `validate_scripts.bat` and publish validation
+
 ### Environment Setup
 
-Set the `DAYZ_TOOLS` environment variable to your DayZ Tools installation:
+Create a `.env` file in the project root with your paths:
+
+```ini
+# Required - Path to DayZ Tools installation
+DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
+
+# Optional - Path to DayZ Server (for script validation)
+DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
+
+# Required for publishing - Steam credentials
+STEAM_USERNAME=your_steam_username
+WORKSHOP_ID=1234567890
+```
+
+Or set environment variables manually:
 
 ```batch
 setx DAYZ_TOOLS "G:\SteamLibrary\steamapps\common\DayZ Tools"
-```
-
-Or create a `.env` file in the project root:
-```
-DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
+setx DAYZ_SERVER "G:\SteamLibrary\steamapps\common\DayZServer"
 ```
 
 ## Building
@@ -98,26 +115,148 @@ dist/@Swarm/
 └── meta.cpp
 ```
 
+## Script Validation
+
+The validation system allows you to verify your scripts compile correctly before publishing by running a DayZ Server instance.
+
+### Running Validation
+
+```batch
+validate_scripts.bat
+```
+
+This will:
+1. Start a minimal DayZ Server instance
+2. Load your mod and any dependency mods
+3. Check for script compilation errors
+4. Report any errors found in the logs
+
+### Validation Options
+
+```batch
+validate_scripts.bat --timeout 90      # Custom timeout (default: 60s)
+validate_scripts.bat --skip-build      # Skip build check
+validate_scripts.bat --help            # Show help
+```
+
+### Server Configuration
+
+The validation system uses server configs in `validation/`:
+
+| File | Purpose |
+|------|---------|
+| `serverDZ.cfg` | Custom config (gitignored) - use for your specific map |
+| `serverDZ.default.cfg` | Default config - uses Chernarus offline |
+
+To use a different map (e.g., Namalsk):
+1. Copy `serverDZ.default.cfg` to `serverDZ.cfg`
+2. Modify the `Missions` class template
+
+Example `serverDZ.cfg` for Namalsk:
+```cpp
+// ... other settings ...
+class Missions {
+    class Swarm_Validation {
+        template="hardcore.namalsk";
+    };
+};
+```
+
+### Dependency Mods
+
+If your mod depends on other mods (CF, Community Framework, etc.), place them in `validation/mods/`:
+
+```
+validation/mods/
+├── @CF/
+│   └── Addons/
+│       └── CF.pbo
+├── @Community-Online-Tools/
+│   └── Addons/
+│       └── ...
+└── README.md
+```
+
+**Tips:**
+- Use **symlinks** to avoid duplicating large mod folders:
+  ```batch
+  mklink /D "@CF" "C:\Path\To\Steam\workshop\content\221100\@CF"
+  ```
+- **Load order**: Mods are loaded alphabetically. Use numeric prefixes if needed (e.g., `@1_CF`, `@2_COT`)
+- The `validation/mods/` folder is gitignored (except README.md)
+
 ## Publishing to Steam Workshop
 
-### Full Publish (Build + Sign + Upload)
+The `publish.bat` script provides a complete workflow: build, validate, sign, and publish to Steam Workshop using SteamCMD.
+
+### SteamCMD Setup
+
+1. Download SteamCMD from [Valve Developer Wiki](https://developer.valvesoftware.com/wiki/SteamCMD)
+2. Extract `steamcmd.exe` to the `scripts/` folder
+3. Run SteamCMD once manually to cache your credentials:
+   ```batch
+   scripts\steamcmd.exe +login your_steam_username +quit
+   ```
+4. Enter your Steam Guard code when prompted (credentials will be cached)
+
+### Full Publish Workflow
 
 ```batch
 publish.bat --version 1.0.0
 ```
 
 This will:
-1. Build all packages with the specified version
-2. Create signing keys (first run only)
-3. Sign all PBO files with `.bisign` signatures
-4. Copy public key to `@Swarm/Keys/`
-5. Upload to Steam Workshop (if configured)
+1. **Build** all packages with the specified version
+2. **Validate** scripts using DayZ Server (if `DAYZ_SERVER` is set)
+3. **Sign** all PBO files with `.bikey/.biprivatekey`
+4. **Publish** to Steam Workshop using SteamCMD
 
-### Using a Custom Signing Key
+### Publish Options
+
+| Option | Description |
+|--------|-------------|
+| `--version X.X.X` | Version number (required) |
+| `--key KeyName` | Custom key name for signing (default: Swarm) |
+| `--changelog "text"` | Change note for Steam Workshop |
+| `--workshop-id ID` | Steam Workshop ID (or set in `.env`) |
+| `--skip-build` | Skip build step (use existing PBOs) |
+| `--skip-validate` | Skip script validation step |
+| `--skip-sign` | Skip PBO signing step |
+| `--skip-publish` | Build and sign only, don't upload |
+| `--dry-run` | Preview what would be done without executing |
+
+### Examples
 
 ```batch
-publish.bat --version 1.0.0 --key MyKeyName
+# Full publish with changelog
+publish.bat --version 1.0.0 --changelog "Bug fixes and new features"
+
+# Build and sign only (no upload)
+publish.bat --version 1.0.0 --skip-publish
+
+# Skip validation (not recommended)
+publish.bat --version 1.0.0 --skip-validate
+
+# Preview what would happen
+publish.bat --version 1.0.0 --dry-run
+
+# Use existing build, just sign and publish
+publish.bat --version 1.0.0 --skip-build
 ```
+
+### First-Time Workshop Setup
+
+For the first publish, you must create the Workshop item manually:
+
+1. Open **DayZ Tools** → **Publisher**
+2. Click **Create** to make a new Workshop item
+3. Fill in title, description, and upload once
+4. Copy the **Workshop ID** from the URL (e.g., `https://steamcommunity.com/sharedfiles/filedetails/?id=1234567890`)
+5. Add to your `.env` file:
+   ```ini
+   WORKSHOP_ID=1234567890
+   ```
+6. Subsequent updates can use `publish.bat` automatically
 
 ### After Publishing
 
@@ -133,16 +272,19 @@ dist/@Swarm/
 │   └── SwarmEarplugs.pbo.Swarm.bisign
 ├── Keys/
 │   └── Swarm.bikey
-└── meta.cpp
+├── meta.cpp
+└── mod.cpp
 ```
 
-### First-Time Workshop Setup
+### Troubleshooting Publishing
 
-1. Open **DayZ Tools** → **Publisher**
-2. Create a new Workshop item
-3. Select `dist/@Swarm` as the mod folder
-4. Fill in title, description, and upload
-5. Subsequent updates can use `publish.bat`
+| Issue | Solution |
+|-------|----------|
+| First time publish fails | Create Workshop item manually via DayZ Tools Publisher GUI first |
+| Steam Guard prompt | Run `scripts\steamcmd.exe +login your_username +quit` to cache credentials |
+| Authentication error | Re-run SteamCMD manually to update cached credentials |
+| SteamCMD not found | Download and place `steamcmd.exe` in the `scripts/` folder |
+| Wrong password | SteamCMD uses cached credentials - run manual login to update |
 
 ## Server Installation
 
@@ -165,8 +307,9 @@ DayZServer_x64.exe -config=serverDZ.cfg -mod=@Swarm
 
 1. Create/modify files in the appropriate `src/` subfolder
 2. Update `config.cpp` if adding new classes
-3. Test locally with DayZ
-4. Submit a pull request
+3. Run `validate_scripts.bat` to verify scripts compile
+4. Test locally with DayZ
+5. Submit a pull request
 
 ### File Types
 
@@ -204,6 +347,7 @@ See [.github/CICD.md](.github/CICD.md) for detailed CI/CD documentation.
 - **Never share** your private signing key
 - The `.bikey` (public key) is safe to distribute
 - Server owners need the `.bikey` to verify your mod signatures
+- Keep your `.env` file private (it's gitignored)
 
 ## Credits
 
