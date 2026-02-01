@@ -45,7 +45,7 @@ class CfgMods
         credits = "Swarm";
         author = "Kize";
         authorID = "";
-        version = "1.0.1";
+        version = "%VERSION%";
         extra = 0;
         type = "mod";
 

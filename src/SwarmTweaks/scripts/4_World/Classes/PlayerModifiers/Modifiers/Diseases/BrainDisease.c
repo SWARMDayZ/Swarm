@@ -8,7 +8,7 @@ modded class BrainDiseaseMdfr : ModifierBase
 	float m_Time;
 	float m_ShakeTime;
 	
-	modded override void Init()
+	override void Init()
 	{
 		m_TrackActivatedTime	= false;
 		m_AnalyticsStatsEnabled = true;
@@ -17,33 +17,33 @@ modded class BrainDiseaseMdfr : ModifierBase
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
 	}
 	
-	modded override string GetDebugText()
+	override string GetDebugText()
 	{
 		return ("Activate threshold: "+AGENT_THRESHOLD_ACTIVATE + "| " +"Deativate threshold: "+AGENT_THRESHOLD_DEACTIVATE);
 	}
 	
-	modded override protected bool ActivateCondition(PlayerBase player)
+	override protected bool ActivateCondition(PlayerBase player)
 	{
 		return (player.GetSingleAgentCount(eAgents.BRAIN) >= AGENT_THRESHOLD_ACTIVATE);
 	}
 
-	modded override protected void OnActivate(PlayerBase player)
+	override protected void OnActivate(PlayerBase player)
 	{
 		player.IncreaseDiseaseCount();
 		player.GetSymptomManager().QueueUpPrimarySymptom(SymptomIDs.SYMPTOM_LAUGHTER);
 	}
 
-	modded override protected void OnDeactivate(PlayerBase player)
+	override protected void OnDeactivate(PlayerBase player)
 	{
 		player.DecreaseDiseaseCount();
 	}
 
-	modded override protected bool DeactivateCondition(PlayerBase player)
+	override protected bool DeactivateCondition(PlayerBase player)
 	{
 		return (player.GetSingleAgentCount(eAgents.BRAIN) <= AGENT_THRESHOLD_DEACTIVATE);
 	}
 
-	modded override protected void OnTick(PlayerBase player, float deltaT)
+	override protected void OnTick(PlayerBase player, float deltaT)
 	{
 		m_Time += deltaT;
 		float brainAgents = player.GetSingleAgentCountNormalized(eAgents.BRAIN) / 8.0;

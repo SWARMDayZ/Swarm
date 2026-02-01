@@ -12,7 +12,7 @@ modded class InfluenzaMdfr : ModifierBase
 	
 	private ModifiersManager m_ModifiersManager;
 	
-	modded override void Init()
+	override void Init()
 	{
 		m_TrackActivatedTime	= false;
 		m_AnalyticsStatsEnabled = true;
@@ -21,12 +21,12 @@ modded class InfluenzaMdfr : ModifierBase
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
 	}
 	
-	modded override string GetDebugText()
+	override string GetDebugText()
 	{
 		return ("Activate threshold: "+AGENT_THRESHOLD_ACTIVATE + "| " +"Deativate threshold: "+AGENT_THRESHOLD_DEACTIVATE);
 	}
 	
-	modded override protected bool ActivateCondition(PlayerBase player)
+	override protected bool ActivateCondition(PlayerBase player)
 	{
 		if (player.GetSingleAgentCount(eAgents.INFLUENZA) >= AGENT_THRESHOLD_ACTIVATE)
 			return true;
@@ -34,26 +34,26 @@ modded class InfluenzaMdfr : ModifierBase
 		return false;
 	}
 
-	modded override protected void OnActivate(PlayerBase player)
+	override protected void OnActivate(PlayerBase player)
 	{
 		player.IncreaseDiseaseCount();
 
 		m_ModifiersManager = player.GetModifiersManager();
 	}
 
-	modded override protected void OnDeactivate(PlayerBase player)
+	override protected void OnDeactivate(PlayerBase player)
 	{
 		player.DecreaseDiseaseCount();
 
 		player.SetTemporaryResistanceToAgent(eAgents.INFLUENZA, TEMPORARY_RESISTANCE_TIME);
 	}
 
-	modded override protected bool DeactivateCondition(PlayerBase player)
+	override protected bool DeactivateCondition(PlayerBase player)
 	{
 		return (player.GetSingleAgentCount(eAgents.INFLUENZA) <= AGENT_THRESHOLD_DEACTIVATE);
 	}
 
-	modded override protected void OnTick(PlayerBase player, float deltaT)
+	override protected void OnTick(PlayerBase player, float deltaT)
 	{
 		float chanceOfCough = Math.Clamp(player.GetSingleAgentCountNormalized(eAgents.INFLUENZA),0,0.85);
 		

@@ -1,22 +1,28 @@
 param(
     [Parameter(Mandatory=$true)]
-    [string]$FilePath,
+    [string]$SourceDir,
+    
+    [Parameter(Mandatory=$true)]
+    [string]$TempDir,
     
     [Parameter(Mandatory=$true)]
     [string]$Version
 )
 
-if (-not (Test-Path $FilePath)) {
-    Write-Error "File not found: $FilePath"
-    exit 1
+# Copy source to temp directory
+if (Test-Path $TempDir) {
+    Remove-Item -Path $TempDir -Recurse -Force
+}
+Copy-Item -Path $SourceDir -Destination $TempDir -Recurse
+
+# Replace %VERSION% placeholder in all .cpp files
+Get-ChildItem -Path $TempDir -Filter "*.cpp" -Recurse | ForEach-Object {
+    $content = Get-Content -Path $_.FullName -Raw
+    if ($content -match '%VERSION%') {
+        $newContent = $content -replace '%VERSION%', $Version
+        [System.IO.File]::WriteAllText($_.FullName, $newContent)
+        Write-Host "  Preprocessed: $($_.Name)"
+    }
 }
 
-$content = Get-Content -Path $FilePath -Raw
-$newContent = $content -replace 'version\s*=\s*"[^"]*"', "version = `"$Version`""
-
-if ($content -ne $newContent) {
-    [System.IO.File]::WriteAllText($FilePath, $newContent)
-    Write-Host "  Updated: $FilePath"
-} else {
-    Write-Host "  No change: $FilePath"
-}
+Write-Host "  Version: $Version"

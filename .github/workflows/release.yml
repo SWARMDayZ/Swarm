@@ -46,27 +46,19 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.VERSION }}"
-          Write-Host "Updating all packages to version $version..."
+          Write-Host "Replacing %VERSION% placeholder with $version..."
           
-          $packages = "${{ env.PACKAGES }}".Split(' ')
+          # Update .version file
+          Set-Content -Path ".version" -Value $version -NoNewline
+          Write-Host "Updated .version file"
           
-          foreach ($pkg in $packages) {
-            # Update meta.cpp
-            $metaPath = "src/$pkg/meta.cpp"
-            if (Test-Path $metaPath) {
-              $content = Get-Content $metaPath -Raw
-              $content = $content -replace 'version\s*=\s*"[^"]*"', "version = `"$version`""
-              Set-Content -Path $metaPath -Value $content -NoNewline
-              Write-Host "Updated $metaPath"
-            }
-            
-            # Update config.cpp
-            $configPath = "src/$pkg/config.cpp"
-            if (Test-Path $configPath) {
-              $content = Get-Content $configPath -Raw
-              $content = $content -replace 'version\s*=\s*"[^"]*"', "version = `"$version`""
-              Set-Content -Path $configPath -Value $content -NoNewline
-              Write-Host "Updated $configPath"
+          # Replace %VERSION% in all .cpp files under src/
+          Get-ChildItem -Path "src" -Filter "*.cpp" -Recurse | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            if ($content -match '%VERSION%') {
+              $newContent = $content -replace '%VERSION%', $version
+              [System.IO.File]::WriteAllText($_.FullName, $newContent)
+              Write-Host "Updated $($_.FullName)"
             }
           }
 
@@ -124,8 +116,8 @@ jobs:
             Write-Host "$pkg built successfully"
           }
           
-          # Copy meta.cpp to mod root
-          Copy-Item -Path "src/SwarmTweaks/meta.cpp" -Destination "dist/${{ env.MOD_NAME }}/meta.cpp"
+          # Copy root meta.cpp to mod root (already has version replaced)
+          Copy-Item -Path "src/meta.cpp" -Destination "dist/${{ env.MOD_NAME }}/meta.cpp"
           
           Write-Host "All PBOs built successfully!"
 
@@ -150,8 +142,8 @@ jobs:
             }
           }
           
-          # Copy meta.cpp to mod root
-          Copy-Item -Path "src/SwarmTweaks/meta.cpp" -Destination "dist/${{ env.MOD_NAME }}/meta.cpp"
+          # Copy root meta.cpp to mod root (already has version replaced)
+          Copy-Item -Path "src/meta.cpp" -Destination "dist/${{ env.MOD_NAME }}/meta.cpp"
           
           Write-Host "Source package created!"
 
