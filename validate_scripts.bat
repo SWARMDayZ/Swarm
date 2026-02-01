@@ -8,7 +8,18 @@ echo.
 
 REM Load environment variables from .env file
 if exist "%~dp0.env" (
-    for /f "usebackq tokens=1,2 delims==" %%a in ("%~dp0.env") do set "%%a=%%b"
+    for /f "usebackq tokens=1,* delims==" %%a in ("%~dp0.env") do (
+        REM Skip empty lines and comments starting with #
+        if not "%%a"=="" (
+            set "_envkey=%%a"
+            set "_envval=%%b"
+            REM Strip surrounding quotes from value if present
+            for /f "tokens=* delims=" %%v in ("!_envval!") do (
+                set "_envval=%%~v"
+            )
+            set "!_envkey!=!_envval!"
+        )
+    )
 )
 
 REM Configuration
