@@ -6,19 +6,17 @@ echo DayZ Script Validation
 echo ========================================
 echo.
 
-REM Load environment variables from .env file
+REM Load environment variables from .env file using PowerShell
 set "_envfile=%~dp0.env"
+set "_psscript=%~dp0scripts\load_env.ps1"
+set "_tmpenv=%TEMP%\_dayz_env_val.tmp"
 if not exist "!_envfile!" goto :skip_env
-REM Use a temp file to safely handle paths with parentheses
-findstr /i /b "DAYZ_SERVER=" "!_envfile!" > "%TEMP%\_dayz_env.tmp" 2>nul
-if not exist "%TEMP%\_dayz_env.tmp" goto :skip_env
-set /p _dayzline=<"%TEMP%\_dayz_env.tmp"
-del "%TEMP%\_dayz_env.tmp" >nul 2>&1
-if not defined _dayzline goto :skip_env
-REM Skip first 12 characters (DAYZ_SERVER=)
-set "DAYZ_SERVER=!_dayzline:~12!"
-REM Remove surrounding quotes if present
-if defined DAYZ_SERVER set "DAYZ_SERVER=!DAYZ_SERVER:"=!"
+if not exist "!_psscript!" goto :skip_env
+REM Use PowerShell to safely read .env and write to temp file
+powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName DAYZ_SERVER > "!_tmpenv!" 2>nul
+if not exist "!_tmpenv!" goto :skip_env
+set /p DAYZ_SERVER=<"!_tmpenv!"
+del "!_tmpenv!" >nul 2>&1
 :skip_env
 
 REM Configuration
@@ -62,14 +60,14 @@ if not defined DAYZ_SERVER (
 )
 
 REM Verify DayZ Server exists
-if not exist "%DAYZ_SERVER%\DayZServer_x64.exe" (
-    echo ERROR: DayZServer_x64.exe not found at: %DAYZ_SERVER%
+if not exist "!DAYZ_SERVER!\DayZServer_x64.exe" (
+    echo ERROR: DayZServer_x64.exe not found at: !DAYZ_SERVER!
     echo.
     echo Please verify DAYZ_SERVER path is correct.
     goto :error
 )
 
-echo Using DayZ Server: %DAYZ_SERVER%
+echo Using DayZ Server: !DAYZ_SERVER!
 echo Validation timeout: %VALIDATION_TIMEOUT% seconds
 echo.
 
@@ -156,7 +154,7 @@ echo This may take 30-60 seconds...
 echo.
 
 REM Start server in background
-start "DayZScriptValidation" /B /MIN "%DAYZ_SERVER%\DayZServer_x64.exe" ^
+start "DayZScriptValidation" /B /MIN "!DAYZ_SERVER!\DayZServer_x64.exe" ^
     "-mod=!MOD_LIST!" ^
     -config=serverDZ.cfg ^
     -port=%VALIDATION_PORT% ^
