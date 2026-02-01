@@ -7,6 +7,7 @@ Une collection de mods pour DayZ Standalone incluant des ajustements de gameplay
 ### SwarmTweaks
 Modifications et ajustements de gameplay :
 - **LessLaugh** - Fréquence de rire réduite
+- **LessCough** - Fréquence de toux réduite
 - **CraftImprovisedSuppressor** - Suppresseurs improvisés craftables
 - **NoBuryItems** - Empêche d'enterrer des objets
 - **ItemsInBack** - Objets visibles sur le dos du personnage
@@ -191,13 +192,13 @@ Le script `publish.bat` fournit un workflow complet : build, validation, signatu
 
 ### Configuration de SteamCMD
 
-1. Téléchargez SteamCMD depuis le [Wiki Valve Developer](https://developer.valvesoftware.com/wiki/SteamCMD)
-2. Extrayez `steamcmd.exe` dans le dossier `scripts/`
-3. Exécutez SteamCMD une fois manuellement pour mettre en cache vos identifiants :
-   ```batch
-   scripts\steamcmd.exe +login votre_nom_utilisateur_steam +quit
-   ```
-4. Entrez votre code Steam Guard lorsque demandé (les identifiants seront mis en cache)
+SteamCMD est inclus dans le dossier `scripts/`. Avant votre première publication, mettez en cache vos identifiants Steam :
+
+```batch
+scripts\steamcmd.exe +login votre_nom_utilisateur_steam +quit
+```
+
+Entrez votre code Steam Guard lorsque demandé - les identifiants seront mis en cache pour les prochaines exécutions.
 
 ### Workflow de Publication Complet
 
@@ -248,9 +249,9 @@ publish.bat --version 1.0.0 --skip-build
 
 Pour la première publication, vous devez créer l'élément Workshop manuellement :
 
-1. Ouvrez **DayZ Tools** → **Publisher**
+1. Allez sur le [Steam Workshop](https://steamcommunity.com/app/221100/workshop/) de DayZ
 2. Cliquez sur **Create** pour créer un nouvel élément Workshop
-3. Remplissez le titre, la description et uploadez une première fois
+3. Remplissez le titre, la description, la visibilité et uploadez votre dossier mod une première fois
 4. Copiez l'**ID Workshop** depuis l'URL (ex: `https://steamcommunity.com/sharedfiles/filedetails/?id=1234567890`)
 5. Ajoutez à votre fichier `.env` :
    ```ini
@@ -280,10 +281,10 @@ dist/@Swarm/
 
 | Problème | Solution |
 |----------|----------|
-| Échec de la première publication | Créez d'abord l'élément Workshop manuellement via l'interface DayZ Tools Publisher |
+| Échec de la première publication | Créez d'abord l'élément Workshop manuellement sur Steam, puis ajoutez WORKSHOP_ID au `.env` |
 | Demande Steam Guard | Exécutez `scripts\steamcmd.exe +login votre_username +quit` pour mettre en cache les identifiants |
 | Erreur d'authentification | Relancez SteamCMD manuellement pour mettre à jour les identifiants en cache |
-| SteamCMD introuvable | Téléchargez et placez `steamcmd.exe` dans le dossier `scripts/` |
+| SteamCMD introuvable | Vérifiez que `scripts/steamcmd.exe` existe |
 | Mauvais mot de passe | SteamCMD utilise les identifiants en cache - exécutez la connexion manuelle pour mettre à jour |
 
 ## Installation Serveur

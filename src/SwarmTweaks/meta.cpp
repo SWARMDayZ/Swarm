@@ -3,4 +3,4 @@ name = "SwarmTweaks";
 timestamp = 0;
 version = "%VERSION%";
 author = "Kize";
-description = "Swarm gameplay tweaks - LessLaugh, CraftImprovisedSuppressor, NoBuryItems, ItemsInBack.";
+description = "Swarm gameplay tweaks - LessLaugh, LessCough, CraftImprovisedSuppressor, NoBuryItems, ItemsInBack.";

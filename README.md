@@ -7,6 +7,7 @@ A collection of DayZ Standalone mods including gameplay tweaks, animal configura
 ### SwarmTweaks
 Gameplay modifications and tweaks:
 - **LessLaugh** - Reduced laughing frequency
+- **LessCough** - Reduced coughing frequency
 - **CraftImprovisedSuppressor** - Craftable improvised suppressors
 - **NoBuryItems** - Prevents burying items
 - **ItemsInBack** - Items visible on character's back
@@ -191,13 +192,13 @@ The `publish.bat` script provides a complete workflow: build, validate, sign, an
 
 ### SteamCMD Setup
 
-1. Download SteamCMD from [Valve Developer Wiki](https://developer.valvesoftware.com/wiki/SteamCMD)
-2. Extract `steamcmd.exe` to the `scripts/` folder
-3. Run SteamCMD once manually to cache your credentials:
-   ```batch
-   scripts\steamcmd.exe +login your_steam_username +quit
-   ```
-4. Enter your Steam Guard code when prompted (credentials will be cached)
+SteamCMD is included in the `scripts/` folder. Before your first publish, cache your Steam credentials:
+
+```batch
+scripts\steamcmd.exe +login your_steam_username +quit
+```
+
+Enter your Steam Guard code when prompted - credentials will be cached for future runs.
 
 ### Full Publish Workflow
 
@@ -248,9 +249,9 @@ publish.bat --version 1.0.0 --skip-build
 
 For the first publish, you must create the Workshop item manually:
 
-1. Open **DayZ Tools** → **Publisher**
+1. Go to [Steam Workshop](https://steamcommunity.com/app/221100/workshop/) for DayZ
 2. Click **Create** to make a new Workshop item
-3. Fill in title, description, and upload once
+3. Fill in title, description, visibility, and upload your mod folder once
 4. Copy the **Workshop ID** from the URL (e.g., `https://steamcommunity.com/sharedfiles/filedetails/?id=1234567890`)
 5. Add to your `.env` file:
    ```ini
@@ -280,10 +281,10 @@ dist/@Swarm/
 
 | Issue | Solution |
 |-------|----------|
-| First time publish fails | Create Workshop item manually via DayZ Tools Publisher GUI first |
+| First time publish fails | Create Workshop item manually on Steam first, then add WORKSHOP_ID to `.env` |
 | Steam Guard prompt | Run `scripts\steamcmd.exe +login your_username +quit` to cache credentials |
 | Authentication error | Re-run SteamCMD manually to update cached credentials |
-| SteamCMD not found | Download and place `steamcmd.exe` in the `scripts/` folder |
+| SteamCMD not found | Verify `scripts/steamcmd.exe` exists |
 | Wrong password | SteamCMD uses cached credentials - run manual login to update |
 
 ## Server Installation
