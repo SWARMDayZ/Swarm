@@ -6,18 +6,9 @@ echo DayZ Script Validation
 echo ========================================
 echo.
 
-REM Load environment variables from .env file
+REM Load environment variables from .env file using PowerShell (handles paths with spaces and parentheses)
 if exist "%~dp0.env" (
-    for /f "usebackq tokens=* delims=" %%L in ("%~dp0.env") do (
-        set "_line=%%L"
-        if defined _line if not "!_line:~0,1!"=="#" (
-            for /f "tokens=1,* delims==" %%a in ("!_line!") do (
-                set "_val=%%b"
-                if defined _val set "_val=!_val:"=!"
-                set "%%a=!_val!"
-            )
-        )
-    )
+    for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "Get-Content '%~dp0.env' | ForEach-Object { if ($_ -match '^DAYZ_SERVER=(.+)$') { $matches[1] -replace '\"','' } }"`) do set "DAYZ_SERVER=%%v"
 )
 
 REM Configuration
