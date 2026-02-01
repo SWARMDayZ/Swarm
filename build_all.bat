@@ -6,12 +6,21 @@ echo Building all Swarm packages...
 echo ========================================
 echo.
 
-REM Load environment variables from .env file
-if exist "%~dp0.env" (
-    for /f "usebackq tokens=1,2 delims==" %%a in ("%~dp0.env") do set "%%a=%%b"
+REM Load environment variables from .env file using PowerShell
+set "_envfile=%~dp0.env"
+set "_psscript=%~dp0scripts\load_env.ps1"
+set "_tmpenv=%TEMP%\_swarm_env.tmp"
+if exist "!_envfile!" if exist "!_psscript!" (
+    for %%V in (DAYZ_TOOLS DAYZ_SERVER) do (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %%V > "!_tmpenv!" 2>nul
+        if exist "!_tmpenv!" (
+            set /p %%V=<"!_tmpenv!"
+            del "!_tmpenv!" >nul 2>&1
+        )
+    )
 )
 
-set ADDON_BUILDER=%DAYZ_TOOLS%\Bin\AddonBuilder\AddonBuilder.exe
+set ADDON_BUILDER=!DAYZ_TOOLS!\Bin\AddonBuilder\AddonBuilder.exe
 set VERSION=
 set OUTPUT_DIR=%~dp0dist\@Swarm\Addons
 set TEMP_DIR=%~dp0.build_temp

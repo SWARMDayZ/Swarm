@@ -1,12 +1,19 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Load environment variables from .env file
-if exist "%~dp0.env" (
-    for /f "usebackq tokens=1,2 delims==" %%a in ("%~dp0.env") do set "%%a=%%b"
+REM Load environment variables from .env file using PowerShell
+set "_envfile=%~dp0.env"
+set "_psscript=%~dp0scripts\load_env.ps1"
+set "_tmpenv=%TEMP%\_swarm_env.tmp"
+if exist "!_envfile!" if exist "!_psscript!" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName DAYZ_TOOLS > "!_tmpenv!" 2>nul
+    if exist "!_tmpenv!" (
+        set /p DAYZ_TOOLS=<"!_tmpenv!"
+        del "!_tmpenv!" >nul 2>&1
+    )
 )
 
-set ADDON_BUILDER=%DAYZ_TOOLS%\Bin\AddonBuilder\AddonBuilder.exe
+set ADDON_BUILDER=!DAYZ_TOOLS!\Bin\AddonBuilder\AddonBuilder.exe
 set SOURCE_DIR=%~dp0src\SwarmEarplugs
 set OUTPUT_DIR=%~dp0dist\@SwarmEarplugs\Addons
 set TEMP_DIR=%~dp0.build_temp\SwarmEarplugs

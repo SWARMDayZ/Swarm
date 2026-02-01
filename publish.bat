@@ -6,9 +6,18 @@ echo Swarm Mod Publisher
 echo ========================================
 echo.
 
-REM Load environment variables from .env file
-if exist "%~dp0.env" (
-    for /f "usebackq tokens=1,2 delims==" %%a in ("%~dp0.env") do set "%%a=%%b"
+REM Load environment variables from .env file using PowerShell
+set "_envfile=%~dp0.env"
+set "_psscript=%~dp0scripts\load_env.ps1"
+set "_tmpenv=%TEMP%\_swarm_env.tmp"
+if exist "!_envfile!" if exist "!_psscript!" (
+    for %%V in (DAYZ_TOOLS DAYZ_SERVER STEAM_USERNAME WORKSHOP_ID) do (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %%V > "!_tmpenv!" 2>nul
+        if exist "!_tmpenv!" (
+            set /p %%V=<"!_tmpenv!"
+            del "!_tmpenv!" >nul 2>&1
+        )
+    )
 )
 
 set "VERSION="
@@ -446,42 +455,31 @@ echo Found !PBO_CHECK! PBO files to publish.
 echo.
 
 REM Create/update mod.cpp for Workshop
-if not exist "!MOD_DIR!\mod.cpp" (
-    echo Creating mod.cpp...
-    (
-        echo name = "Swarm";
-        echo picture = "";
-        echo actionName = "";
-        echo action = "";
-        echo logo = "";
-        echo logoSmall = "";
-        echo logoOver = "";
-        echo tooltip = "Swarm - DayZ Mod Collection";
-        echo overview = "A collection of DayZ mods including SwarmTweaks, SwarmAnimals, and SwarmEarplugs.";
-        echo author = "Swarm Team";
-        echo version = "!VERSION!";
-    ) > "!MOD_DIR!\mod.cpp"
-) else (
+if exist "!MOD_DIR!\mod.cpp" (
     echo Updating mod.cpp version...
-    REM Update version in existing mod.cpp using PowerShell
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$content = Get-Content -Path '!MOD_DIR!\mod.cpp' -Raw; $content = $content -replace 'version\s*=\s*\"[^\"]*\"', 'version = \"!VERSION!\"'; Set-Content -Path '!MOD_DIR!\mod.cpp' -Value $content -NoNewline" 2>nul
-    if !ERRORLEVEL! NEQ 0 (
-        REM Fallback: recreate mod.cpp
-        (
-            echo name = "Swarm";
-            echo picture = "";
-            echo actionName = "";
-            echo action = "";
-            echo logo = "";
-            echo logoSmall = "";
-            echo logoOver = "";
-            echo tooltip = "Swarm - DayZ Mod Collection";
-            echo overview = "A collection of DayZ mods including SwarmTweaks, SwarmAnimals, and SwarmEarplugs.";
-            echo author = "Swarm Team";
-            echo version = "!VERSION!";
-        ) > "!MOD_DIR!\mod.cpp"
-    )
+) else (
+    echo Creating mod.cpp...
 )
+call :write_mod_cpp
+goto :after_mod_cpp
+
+:write_mod_cpp
+(
+    echo name = "Swarm";
+    echo picture = "";
+    echo actionName = "";
+    echo action = "";
+    echo logo = "";
+    echo logoSmall = "";
+    echo logoOver = "";
+    echo tooltip = "Swarm - DayZ Mod Collection";
+    echo overview = "A collection of DayZ mods including SwarmTweaks, SwarmAnimals, and SwarmEarplugs.";
+    echo author = "Swarm Team";
+    echo version = "!VERSION!";
+) > "!MOD_DIR!\mod.cpp"
+goto :eof
+
+:after_mod_cpp
 echo.
 
 if "!DRY_RUN!"=="1" (
