@@ -205,10 +205,6 @@ See [.github/CICD.md](.github/CICD.md) for detailed CI/CD documentation.
 - The `.bikey` (public key) is safe to distribute
 - Server owners need the `.bikey` to verify your mod signatures
 
-## License
-
-[Add your license here]
-
 ## Credits
 
 - **Author**: Kize & Arky
