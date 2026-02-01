@@ -8,22 +8,17 @@ echo.
 
 REM Load environment variables from .env file
 if exist "%~dp0.env" (
-    for /f "usebackq tokens=1,* delims==" %%a in ("%~dp0.env") do (
-        if not "%%a"=="" call :set_env_var "%%a" "%%b"
+    for /f "usebackq tokens=* delims=" %%L in ("%~dp0.env") do (
+        set "_line=%%L"
+        if defined _line if not "!_line:~0,1!"=="#" (
+            for /f "tokens=1,* delims==" %%a in ("!_line!") do (
+                set "_val=%%b"
+                if defined _val set "_val=!_val:"=!"
+                set "%%a=!_val!"
+            )
+        )
     )
 )
-goto :after_env_loader
-
-:set_env_var
-REM Subroutine to safely set env var (handles paths with spaces and parentheses)
-set "_key=%~1"
-set "_val=%~2"
-REM Remove any surrounding quotes from value
-if defined _val set "_val=!_val:"=!"
-set "!_key!=!_val!"
-goto :eof
-
-:after_env_loader
 
 REM Configuration
 set MOD_PATH=%~dp0dist\@Swarm
