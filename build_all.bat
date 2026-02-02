@@ -86,7 +86,7 @@ mkdir "%OUTPUT_DIR%"
 echo.
 
 REM Build SwarmTweaks
-echo [1/3] Building SwarmTweaks...
+echo [1/4] Building SwarmTweaks...
 set "TEMP_SRC=%TEMP_DIR%\SwarmTweaks"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmTweaks" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
 "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
@@ -98,7 +98,7 @@ echo SwarmTweaks OK
 echo.
 
 REM Build SwarmAnimals
-echo [2/3] Building SwarmAnimals...
+echo [2/4] Building SwarmAnimals...
 set "TEMP_SRC=%TEMP_DIR%\SwarmAnimals"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmAnimals" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
 "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -packonly
@@ -110,7 +110,7 @@ echo SwarmAnimals OK
 echo.
 
 REM Build SwarmEarplugs
-echo [3/3] Building SwarmEarplugs...
+echo [3/4] Building SwarmEarplugs...
 set "TEMP_SRC=%TEMP_DIR%\SwarmEarplugs"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmEarplugs" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
 "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -packonly
@@ -119,6 +119,18 @@ if %ERRORLEVEL% NEQ 0 (
     goto :error
 )
 echo SwarmEarplugs OK
+echo.
+
+REM Build SwarmSpectator
+echo [4/4] Building SwarmSpectator...
+set "TEMP_SRC=%TEMP_DIR%\SwarmSpectator"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmSpectator" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
+"%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -packonly
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: SwarmSpectator build failed!
+    goto :error
+)
+echo SwarmSpectator OK
 echo.
 
 REM Process root meta.cpp

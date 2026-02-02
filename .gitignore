@@ -25,6 +25,12 @@ dist/
 *.suo
 *.user
 
+# .NET build output
+# This is temporary until the SwarmManager is moved to a separate repository
+SwarmManager
+SwarmManager/bin/
+SwarmManager/obj/
+
 # DayZ Tools temp files
 *.biprivatekey
 temp/
