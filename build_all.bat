@@ -6,19 +6,29 @@ echo Building all Swarm packages...
 echo ========================================
 echo.
 
-REM Load environment variables from .env file using PowerShell
+REM Load environment variables from .env file using PowerShell (only if not already set)
 set "_envfile=%~dp0.env"
 set "_psscript=%~dp0scripts\load_env.ps1"
 set "_tmpenv=%TEMP%\_swarm_env.tmp"
 if exist "!_envfile!" if exist "!_psscript!" (
-    for %%V in (DAYZ_TOOLS DAYZ_SERVER) do (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %%V > "!_tmpenv!" 2>nul
-        if exist "!_tmpenv!" (
-            set /p %%V=<"!_tmpenv!"
-            del "!_tmpenv!" >nul 2>&1
-        )
+    for %%V in (DAYZ_TOOLS DAYZ_SERVER WORKSHOP_ID) do (
+        REM Only load from .env if variable is not already set
+        call :load_env_var %%V
     )
 )
+goto :after_load_env
+
+:load_env_var
+if not defined %1 (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %1 > "!_tmpenv!" 2>nul
+    if exist "!_tmpenv!" (
+        set /p %1=<"!_tmpenv!"
+        del "!_tmpenv!" >nul 2>&1
+    )
+)
+goto :eof
+
+:after_load_env
 
 set ADDON_BUILDER=!DAYZ_TOOLS!\Bin\AddonBuilder\AddonBuilder.exe
 set VERSION=
@@ -115,7 +125,22 @@ REM Process root meta.cpp
 echo Copying mod metadata...
 set "TEMP_META=%TEMP_DIR%\meta.cpp"
 copy "%~dp0src\meta.cpp" "!TEMP_META!" >nul
-powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content '!TEMP_META!' -Raw) -replace '%%VERSION%%', '!VERSION!' | Set-Content '!TEMP_META!' -NoNewline"
+
+REM Get current timestamp (.NET Framework ticks format)
+for /f %%T in ('powershell -NoProfile -Command "[DateTime]::UtcNow.Ticks"') do set "TIMESTAMP=%%T"
+
+REM Set publishedid from WORKSHOP_ID or default to 0
+if defined WORKSHOP_ID (
+    set "PUBLISHEDID=!WORKSHOP_ID!"
+) else (
+    set "PUBLISHEDID=0"
+)
+
+echo   Timestamp: !TIMESTAMP!
+echo   Published ID: !PUBLISHEDID!
+
+REM Replace all placeholders in meta.cpp
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$content = Get-Content '!TEMP_META!' -Raw; $content = $content -replace '%%VERSION%%', '!VERSION!'; $content = $content -replace '%%TIMESTAMP%%', '!TIMESTAMP!'; $content = $content -replace '%%PUBLISHEDID%%', '!PUBLISHEDID!'; Set-Content '!TEMP_META!' -Value $content -NoNewline"
 copy "!TEMP_META!" "%~dp0dist\@Swarm\meta.cpp" >nul
 
 REM Cleanup temp directory
