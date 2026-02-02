@@ -10,9 +10,22 @@ modded class JMSpectatorCamera
         // This only affects m_COT_TargetMarker and m_COT_TargetLight - nothing else
         if (!SwarmSpectatorSettings.ShowTargetMarker)
         {
-            // Force marker removal by setting the flag and calling remove
+            // Remove marker particle
+            if (m_COT_TargetMarker)
+            {
+                if (m_COT_TargetMarker.IsParticlePlaying())
+                    m_COT_TargetMarker.StopParticle();
+                m_COT_TargetMarker = null;
+            }
+            
+            // Remove light immediately (don't use FadeOut which takes 3 seconds)
+            if (m_COT_TargetLight)
+            {
+                m_COT_TargetLight.Destroy();
+                m_COT_TargetLight = null;
+            }
+            
             m_COT_RemoveMarker = true;
-            COT_RemoveMarker();
         }
     }
 }
