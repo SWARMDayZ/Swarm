@@ -2,7 +2,14 @@ modded class JMSpectatorCamera
 {
     override void OnUpdate(float timeslice)
     {
-        // Run all original COT camera logic first
+        // If lock-on is disabled, clear the target before COT processes it
+        // This prevents the camera from focusing on detected targets
+        if (!SwarmSpectatorSettings.LockOnTarget)
+        {
+            m_COT_LookAtTarget = null;
+        }
+        
+        // Run all original COT camera logic
         super.OnUpdate(timeslice);
         
         // After COT processing, check if we should hide the marker
@@ -26,6 +33,13 @@ modded class JMSpectatorCamera
             }
             
             m_COT_RemoveMarker = true;
+        }
+        
+        // If lock-on is disabled, also clear the target after processing
+        // to prevent it from persisting to the next frame
+        if (!SwarmSpectatorSettings.LockOnTarget)
+        {
+            m_COT_LookAtTarget = null;
         }
     }
 }
