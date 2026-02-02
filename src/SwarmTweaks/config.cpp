@@ -23,12 +23,13 @@ class CfgVehicles
     };
 
     class Tripod;
+
     class Swarm_Tripod : Tripod
     {
         scope = 2;
         displayName = "$STR_CfgVehicles_Tripod0";
         descriptionShort = "$STR_CfgVehicles_Tripod1";
-        inventorySlot[] = {"Shoulder", "Melee"};
+        inventorySlot[] = {"Shoulder", "Melee", "CookingTripod"};
     };
 };
 
