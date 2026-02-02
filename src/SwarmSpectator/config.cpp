@@ -27,6 +27,7 @@ class CfgMods
         type = "mod";
 
         dependencies[] = {"Game", "World", "Mission"};
+        inputs = "SwarmSpectator/data/inputs.xml";
 
         class defs
         {

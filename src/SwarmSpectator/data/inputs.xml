@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<modded_inputs>
+	<inputs>
+		<actions>
+			<input name="UASwarmSpectatorToggleLockOn" loc="Toggle Lock On Target"/>
+		</actions>
+	</inputs>
+	<preset>
+		<input name="UASwarmSpectatorToggleLockOn">
+			<!-- Default: O key -->
+			<btn name="kO"/>
+		</input>
+	</preset>
+</modded_inputs>
