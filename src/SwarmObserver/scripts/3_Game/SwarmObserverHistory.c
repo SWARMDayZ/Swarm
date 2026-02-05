@@ -234,7 +234,15 @@ class SwarmObserverHistory
 		int year, month, day, hour, minute, second;
 		GetYearMonthDay(year, month, day);
 		GetHourMinuteSecond(hour, minute, second);
-		string timestamp = day.ToString() + "/" + month.ToString() + "/" + year.ToString() + " " + hour.ToString() + ":" + minute.ToString() + ":" + second.ToString();
+		
+		// Zero-pad date and time components to match webhook timestamp format (e.g., "05/02/2025 09:15:03")
+		string dayStr = (day < 10) ? "0" + day.ToString() : day.ToString();
+		string monthStr = (month < 10) ? "0" + month.ToString() : month.ToString();
+		string hourStr = (hour < 10) ? "0" + hour.ToString() : hour.ToString();
+		string minuteStr = (minute < 10) ? "0" + minute.ToString() : minute.ToString();
+		string secondStr = (second < 10) ? "0" + second.ToString() : second.ToString();
+		
+		string timestamp = dayStr + "/" + monthStr + "/" + year.ToString() + " " + hourStr + ":" + minuteStr + ":" + secondStr;
 		
 		record.AddViolation(areaName, timestamp);
 		
