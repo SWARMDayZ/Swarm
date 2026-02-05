@@ -35,8 +35,8 @@ set VERSION=
 set OUTPUT_DIR=%~dp0dist\@Swarm\Addons
 set TEMP_DIR=%~dp0.build_temp
 set PREPROCESS_SCRIPT=%~dp0scripts\update_version.ps1
-set RUN_VALIDATION=
-set VALIDATION_TIMEOUT=60
+set RUN_VALIDATE=
+set VALIDATE_TIMEOUT=60
 
 REM Parse arguments
 :parse_args
@@ -48,12 +48,12 @@ if /i "%~1"=="--version" (
     goto :parse_args
 )
 if /i "%~1"=="--validate" (
-    set "RUN_VALIDATION=1"
+    set "RUN_VALIDATE=1"
     shift
     goto :parse_args
 )
 if /i "%~1"=="--timeout" (
-    set "VALIDATION_TIMEOUT=%~2"
+    set "VALIDATE_TIMEOUT=%~2"
     shift
     shift
     goto :parse_args
@@ -85,53 +85,36 @@ if exist "%OUTPUT_DIR%" rmdir /s /q "%OUTPUT_DIR%"
 mkdir "%OUTPUT_DIR%"
 echo.
 
-REM Build SwarmTweaks
-echo [1/5] Building SwarmTweaks...
-set "TEMP_SRC=%TEMP_DIR%\SwarmTweaks"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmTweaks" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
-"%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: SwarmTweaks build failed!
-    goto :error
-)
-echo SwarmTweaks OK
-echo.
+REM Count folders in src directory (excluding meta.cpp)
+set FOLDER_COUNT=0
+for /d %%D in ("%~dp0src\*") do set /a FOLDER_COUNT+=1
 
-REM Build SwarmAnimals
-echo [2/5] Building SwarmAnimals...
-set "TEMP_SRC=%TEMP_DIR%\SwarmAnimals"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmAnimals" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
-"%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: SwarmAnimals build failed!
-    goto :error
+REM Build all packages in src directory
+set BUILD_INDEX=0
+set FIRST_BUILD=1
+for /d %%D in ("%~dp0src\*") do (
+    set /a BUILD_INDEX+=1
+    set "FOLDER_NAME=%%~nxD"
+    
+    echo [!BUILD_INDEX!/!FOLDER_COUNT!] Building !FOLDER_NAME!...
+    set "TEMP_SRC=%TEMP_DIR%\!FOLDER_NAME!"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%%D" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
+    
+    REM Use -clear flag only on first build
+    if !FIRST_BUILD! EQU 1 (
+        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
+        set FIRST_BUILD=0
+    ) else (
+        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -packonly
+    )
+    
+    if !ERRORLEVEL! NEQ 0 (
+        echo ERROR: !FOLDER_NAME! build failed!
+        goto :error
+    )
+    echo !FOLDER_NAME! OK
+    echo.
 )
-echo SwarmAnimals OK
-echo.
-
-REM Build SwarmEarplugs
-echo [3/5] Building SwarmEarplugs...
-set "TEMP_SRC=%TEMP_DIR%\SwarmEarplugs"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmEarplugs" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
-"%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: SwarmEarplugs build failed!
-    goto :error
-)
-echo SwarmEarplugs OK
-echo.
-
-REM Build SwarmSpectator
-echo [4/5] Building SwarmSpectator...
-set "TEMP_SRC=%TEMP_DIR%\SwarmSpectator"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%~dp0src\SwarmSpectator" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
-"%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: SwarmSpectator build failed!
-    goto :error
-)
-echo SwarmSpectator OK
-echo.
 
 REM Process root meta.cpp
 echo Copying mod metadata...
@@ -165,22 +148,22 @@ echo Version: !VERSION!
 echo Output: %OUTPUT_DIR%
 echo ========================================
 
-REM Run validation if --validate flag was specified
-if defined RUN_VALIDATION (
+REM Run validate if --validate flag was specified
+if defined RUN_VALIDATE (
     echo.
-    echo Running script validation...
+    echo Running script validate...
     echo.
-    call "%~dp0validate_scripts.bat" --timeout !VALIDATION_TIMEOUT!
+    call "%~dp0validate.bat" --timeout !VALIDATE_TIMEOUT!
     if !ERRORLEVEL! NEQ 0 (
-        goto :validation_failed
+        goto :validate_failed
     )
 )
 goto :end
 
-:validation_failed
+:validate_failed
 echo.
 echo ========================================
-echo Build succeeded but validation FAILED!
+echo Build succeeded but validate FAILED!
 echo ========================================
 endlocal
 exit /b 1

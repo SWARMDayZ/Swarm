@@ -2,6 +2,30 @@
 
 A collection of DayZ Standalone mods including gameplay tweaks, animal configurations, and quality-of-life features.
 
+## Recent Changes
+
+### New Features
+- **SwarmSpectator** - New mod for enhanced spectator camera controls with Dolly Cam support
+- **launch.bat** - Automated server + client launcher for local testing with BattleEye support
+- **DAYZ_CLIENT** environment variable - Configure your DayZ client installation path
+- **MODS** environment variable - Define mod load order for testing
+
+### Script Organization
+- Consolidated build scripts: `build.bat` now builds all packages automatically
+- Renamed `validate_scripts.bat` → `validate.bat` for consistency
+- Renamed `validation/` → `validate/` directory
+- All temporary directories now use consistent naming (`.build_temp`, `.validate_temp`, `.launch_temp`)
+
+### BattleEye Improvements
+- Fixed server crashes by keeping BattleEye **enabled** (not disabled)
+- Client now uses `DayZ_BE.exe` for proper BattleEye initialization
+- Removed filePatching flags (not needed for mod testing)
+- Server config automatically sets `BattlEye = 1` for stability
+
+### CI/CD Cleanup
+- Removed GitHub Actions workflows (`.github/workflows/`)
+- Simplified to local development focus with batch scripts
+
 ## Included Mods
 
 ### SwarmTweaks
@@ -28,6 +52,13 @@ Volume control system with in-game earplugs widget:
 - Custom keybind support
 - Visual indicator widget
 
+### SwarmSpectator
+Enhanced spectator/camera system for DayZ:
+- **Dolly Cam** - Smooth camera movement following players/entities
+- **Lock On Target** - Keep camera focused on specific entity
+- **Show Target Marker** - Visual indicator for locked target
+- Integrates with JM Camera Tools mod
+
 ## Project Structure
 
 ```
@@ -35,7 +66,8 @@ Swarm/
 ├── src/
 │   ├── SwarmTweaks/        # Gameplay tweaks mod
 │   ├── SwarmAnimals/       # Animal configurations
-│   └── SwarmEarplugs/      # Earplugs/volume control
+│   ├── SwarmEarplugs/      # Earplugs/volume control
+│   └── SwarmSpectator/     # Spectator camera enhancements
 ├── dist/                   # Build output (gitignored)
 │   └── @Swarm/
 │       ├── Addons/         # Compiled PBO files
@@ -43,10 +75,10 @@ Swarm/
 │       └── meta.cpp
 ├── keys/                   # Signing keys (private key gitignored)
 ├── scripts/                # Build helper scripts + steamcmd.exe
-├── validation/             # Script validation configuration
-│   ├── mods/               # Dependency mods for validation
+├── validate/             # Script validate configuration
+│   ├── mods/               # Dependency mods for validate
 │   ├── serverDZ.cfg        # Custom server config (gitignored)
-│   └── serverDZ.default.cfg # Default validation config
+│   └── serverDZ.default.cfg # Default validate config
 ├── .github/workflows/      # CI/CD pipelines
 └── *.bat                   # Build scripts
 ```
@@ -57,8 +89,8 @@ Swarm/
 - **DayZ Tools** - Install via Steam (free with DayZ ownership)
 - **Windows** - Build scripts are Windows batch files
 
-### Optional (for script validation)
-- **DayZ Server** - Required for `validate_scripts.bat` and publish validation
+### Optional (for script validate)
+- **DayZ Server** - Required for `validate.bat` and publish validate
 
 ### Environment Setup
 
@@ -68,7 +100,7 @@ Create a `.env` file in the project root with your paths:
 # Required - Path to DayZ Tools installation
 DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
 
-# Optional - Path to DayZ Server (for script validation)
+# Optional - Path to DayZ Server (for script validate)
 DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
 
 # Required for publishing - Steam credentials
@@ -88,21 +120,13 @@ setx DAYZ_SERVER "G:\SteamLibrary\steamapps\common\DayZServer"
 ### Build All Packages
 
 ```batch
-build_all.bat --version 1.0.0
+build.bat --version 1.0.0
 ```
 
 This will:
 1. Update version numbers in all `meta.cpp` and `config.cpp` files
 2. Build PBO files using DayZ Tools AddonBuilder
 3. Output to `dist/@Swarm/Addons/`
-
-### Build Individual Packages
-
-```batch
-build_swarmtweaks.bat --version 1.0.0
-build_swarmanimals.bat --version 1.0.0
-build_swarmearplugs.bat --version 1.0.0
-```
 
 ### Build Output
 
@@ -112,18 +136,61 @@ dist/@Swarm/
 ├── Addons/
 │   ├── SwarmTweaks.pbo
 │   ├── SwarmAnimals.pbo
-│   └── SwarmEarplugs.pbo
+│   ├── SwarmEarplugs.pbo
+│   └── SwarmSpectator.pbo
 └── meta.cpp
 ```
 
-## Script Validation
+## Development & Testing
 
-The validation system allows you to verify your scripts compile correctly before publishing by running a DayZ Server instance.
+### Launch Server and Client
 
-### Running Validation
+The `launch.bat` script provides an easy way to test your mod locally:
 
 ```batch
-validate_scripts.bat
+launch.bat
+```
+
+**Key Features:**
+- Automatically starts both DayZ Server and Client
+- Enables BattleEye for stability (uses `DayZ_BE.exe` for client)
+- Auto-connects client to local server
+- Supports dependency mods from `validate/mods/` or `MODS` env variable
+- Optional mod building and signing with `--build` flag
+
+**Options:**
+```batch
+launch.bat --build           # Build mod before launching
+launch.bat --port 2303       # Use custom port
+launch.bat --build --port 2303  # Combined options
+```
+
+**Environment Variables Required:**
+```ini
+DAYZ_SERVER=C:\Path\To\DayZServer
+DAYZ_CLIENT=C:\Path\To\DayZ
+DAYZ_TOOLS=C:\Path\To\DayZ Tools  # Only for --build flag
+MODS=@CF;@CommunityFramework      # Optional, load order
+```
+
+**What it does:**
+1. Verifies BattleEye folders exist and are properly set up
+2. Optionally builds and signs the mod (`--build`)
+3. Starts DayZ Server with your mod loaded
+4. Waits for server initialization
+5. Launches DayZ Client using `DayZ_BE.exe` for proper BattleEye support
+6. Auto-connects client to 127.0.0.1 on specified port
+
+**Note:** The script keeps BattleEye **enabled** for both server and client to prevent crashes. File patching is not used.
+
+## Script Validate
+
+The validate system allows you to verify your scripts compile correctly before publishing by running a DayZ Server instance.
+
+### Running Validate
+
+```batch
+validate.bat
 ```
 
 This will:
@@ -132,17 +199,17 @@ This will:
 3. Check for script compilation errors
 4. Report any errors found in the logs
 
-### Validation Options
+### Validate Options
 
 ```batch
-validate_scripts.bat --timeout 90      # Custom timeout (default: 60s)
-validate_scripts.bat --skip-build      # Skip build check
-validate_scripts.bat --help            # Show help
+validate.bat --timeout 90      # Custom timeout (default: 60s)
+validate.bat --skip-build      # Skip build check
+validate.bat --help            # Show help
 ```
 
 ### Server Configuration
 
-The validation system uses server configs in `validation/`:
+The validate system uses server configs in `validate/`:
 
 | File | Purpose |
 |------|---------|
@@ -157,7 +224,7 @@ Example `serverDZ.cfg` for Namalsk:
 ```cpp
 // ... other settings ...
 class Missions {
-    class Swarm_Validation {
+    class Swarm_Validate {
         template="hardcore.namalsk";
     };
 };
@@ -165,10 +232,10 @@ class Missions {
 
 ### Dependency Mods
 
-If your mod depends on other mods (CF, Community Framework, etc.), place them in `validation/mods/`:
+If your mod depends on other mods (CF, Community Framework, etc.), place them in `validate/mods/`:
 
 ```
-validation/mods/
+validate/mods/
 ├── @CF/
 │   └── Addons/
 │       └── CF.pbo
@@ -184,7 +251,7 @@ validation/mods/
   mklink /D "@CF" "C:\Path\To\Steam\workshop\content\221100\@CF"
   ```
 - **Load order**: Mods are loaded alphabetically. Use numeric prefixes if needed (e.g., `@1_CF`, `@2_COT`)
-- The `validation/mods/` folder is gitignored (except README.md)
+- The `validate/mods/` folder is gitignored (except README.md)
 
 ## Publishing to Steam Workshop
 
@@ -221,7 +288,7 @@ This will:
 | `--changelog "text"` | Change note for Steam Workshop |
 | `--workshop-id ID` | Steam Workshop ID (or set in `.env`) |
 | `--skip-build` | Skip build step (use existing PBOs) |
-| `--skip-validate` | Skip script validation step |
+| `--skip-validate` | Skip script validate step |
 | `--skip-sign` | Skip PBO signing step |
 | `--skip-publish` | Build and sign only, don't upload |
 | `--dry-run` | Preview what would be done without executing |
@@ -235,7 +302,7 @@ publish.bat --version 1.0.0 --changelog "Bug fixes and new features"
 # Build and sign only (no upload)
 publish.bat --version 1.0.0 --skip-publish
 
-# Skip validation (not recommended)
+# Skip validate (not recommended)
 publish.bat --version 1.0.0 --skip-validate
 
 # Preview what would happen
@@ -308,7 +375,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -mod=@Swarm
 
 1. Create/modify files in the appropriate `src/` subfolder
 2. Update `config.cpp` if adding new classes
-3. Run `validate_scripts.bat` to verify scripts compile
+3. Run `validate.bat` to verify scripts compile
 4. Test locally with DayZ
 5. Submit a pull request
 

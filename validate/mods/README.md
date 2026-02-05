@@ -1,13 +1,13 @@
-# Validation Mods
+# Validate Mods
 
-Place dependency mods in this folder for script validation.
+Place dependency mods in this folder for script validate.
 
 ## Usage
 
 If your mod depends on other mods (e.g., CF, Community Framework, etc.), copy or symlink them here:
 
 ```
-validation/mods/
+validate/mods/
 ├── @CF/
 │   └── Addons/
 │       └── CF.pbo
@@ -17,7 +17,7 @@ validation/mods/
 └── README.md
 ```
 
-The `validate_scripts.bat` script will automatically detect and load all `@*` folders as mods.
+The `validate.bat` script will automatically detect and load all `@*` folders as mods.
 
 ## Tips
 
