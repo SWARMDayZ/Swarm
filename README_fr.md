@@ -2,6 +2,30 @@
 
 Une collection de mods pour DayZ Standalone incluant des ajustements de gameplay, des configurations d'animaux et des fonctionnalités de qualité de vie.
 
+## Changements Récents
+
+### Nouvelles Fonctionnalités
+- **SwarmSpectator** - Nouveau mod pour contrôles de caméra spectateur améliorés avec support Dolly Cam
+- **launch.bat** - Lanceur automatique serveur + client pour tests locaux avec support BattleEye
+- **DAYZ_CLIENT** variable d'environnement - Configurer le chemin d'installation du client DayZ
+- **MODS** variable d'environnement - Définir l'ordre de chargement des mods pour les tests
+
+### Organisation des Scripts
+- Scripts de build consolidés : `build.bat` compile maintenant tous les packages automatiquement
+- Renommage `validate_scripts.bat` → `validate.bat` pour cohérence
+- Renommage du répertoire `validation/` → `validate/`
+- Tous les répertoires temporaires utilisent maintenant un nommage cohérent (`.build_temp`, `.validate_temp`, `.launch_temp`)
+
+### Améliorations BattleEye
+- Correction des crashes serveur en gardant BattleEye **activé** (non désactivé)
+- Le client utilise maintenant `DayZ_BE.exe` pour une initialisation BattleEye correcte
+- Suppression des flags filePatching (non nécessaires pour tester les mods)
+- La config serveur définit automatiquement `BattlEye = 1` pour la stabilité
+
+### Nettoyage CI/CD
+- Suppression des workflows GitHub Actions (`.github/workflows/`)
+- Simplification vers un focus développement local avec scripts batch
+
 ## Mods Inclus
 
 ### SwarmTweaks
@@ -43,10 +67,10 @@ Swarm/
 │       └── meta.cpp
 ├── keys/                   # Clés de signature (clé privée gitignored)
 ├── scripts/                # Scripts d'aide au build + steamcmd.exe
-├── validation/             # Configuration de validation des scripts
-│   ├── mods/               # Mods de dépendance pour la validation
+├── validate/             # Configuration de validate des scripts
+│   ├── mods/               # Mods de dépendance pour la validate
 │   ├── serverDZ.cfg        # Config serveur personnalisée (gitignored)
-│   └── serverDZ.default.cfg # Config de validation par défaut
+│   └── serverDZ.default.cfg # Config de validate par défaut
 ├── .github/workflows/      # Pipelines CI/CD
 └── *.bat                   # Scripts de build
 ```
@@ -57,8 +81,8 @@ Swarm/
 - **DayZ Tools** - Installer via Steam (gratuit avec DayZ)
 - **Windows** - Les scripts de build sont des fichiers batch Windows
 
-### Optionnel (pour la validation des scripts)
-- **DayZ Server** - Requis pour `validate_scripts.bat` et la validation à la publication
+### Optionnel (pour la validate des scripts)
+- **DayZ Server** - Requis pour `validate.bat` et la validate à la publication
 
 ### Configuration de l'Environnement
 
@@ -68,7 +92,7 @@ Créez un fichier `.env` à la racine du projet avec vos chemins :
 # Requis - Chemin vers l'installation de DayZ Tools
 DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
 
-# Optionnel - Chemin vers DayZ Server (pour la validation des scripts)
+# Optionnel - Chemin vers DayZ Server (pour la validate des scripts)
 DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
 
 # Requis pour la publication - Identifiants Steam
@@ -88,21 +112,13 @@ setx DAYZ_SERVER "G:\SteamLibrary\steamapps\common\DayZServer"
 ### Compiler Tous les Packages
 
 ```batch
-build_all.bat --version 1.0.0
+build.bat --version 1.0.0
 ```
 
 Cela va :
 1. Mettre à jour les numéros de version dans tous les fichiers `meta.cpp` et `config.cpp`
 2. Compiler les fichiers PBO avec DayZ Tools AddonBuilder
 3. Générer dans `dist/@Swarm/Addons/`
-
-### Compiler des Packages Individuels
-
-```batch
-build_swarmtweaks.bat --version 1.0.0
-build_swarmanimals.bat --version 1.0.0
-build_swarmearplugs.bat --version 1.0.0
-```
 
 ### Sortie de Compilation
 
@@ -116,14 +132,14 @@ dist/@Swarm/
 └── meta.cpp
 ```
 
-## Validation des Scripts
+## Validate des Scripts
 
-Le système de validation permet de vérifier que vos scripts compilent correctement avant la publication en exécutant une instance de DayZ Server.
+Le système de validate permet de vérifier que vos scripts compilent correctement avant la publication en exécutant une instance de DayZ Server.
 
-### Exécuter la Validation
+### Exécuter la Validate
 
 ```batch
-validate_scripts.bat
+validate.bat
 ```
 
 Cela va :
@@ -132,17 +148,17 @@ Cela va :
 3. Vérifier les erreurs de compilation de scripts
 4. Signaler toutes les erreurs trouvées dans les logs
 
-### Options de Validation
+### Options de Validate
 
 ```batch
-validate_scripts.bat --timeout 90      # Timeout personnalisé (défaut: 60s)
-validate_scripts.bat --skip-build      # Ignorer la vérification de build
-validate_scripts.bat --help            # Afficher l'aide
+validate.bat --timeout 90      # Timeout personnalisé (défaut: 60s)
+validate.bat --skip-build      # Ignorer la vérification de build
+validate.bat --help            # Afficher l'aide
 ```
 
 ### Configuration du Serveur
 
-Le système de validation utilise les configs serveur dans `validation/` :
+Le système de validate utilise les configs serveur dans `validate/` :
 
 | Fichier | Usage |
 |---------|-------|
@@ -157,7 +173,7 @@ Exemple de `serverDZ.cfg` pour Namalsk :
 ```cpp
 // ... autres paramètres ...
 class Missions {
-    class Swarm_Validation {
+    class Swarm_Validate {
         template="hardcore.namalsk";
     };
 };
@@ -165,10 +181,10 @@ class Missions {
 
 ### Mods de Dépendance
 
-Si votre mod dépend d'autres mods (CF, Community Framework, etc.), placez-les dans `validation/mods/` :
+Si votre mod dépend d'autres mods (CF, Community Framework, etc.), placez-les dans `validate/mods/` :
 
 ```
-validation/mods/
+validate/mods/
 ├── @CF/
 │   └── Addons/
 │       └── CF.pbo
@@ -184,11 +200,11 @@ validation/mods/
   mklink /D "@CF" "C:\Chemin\Vers\Steam\workshop\content\221100\@CF"
   ```
 - **Ordre de chargement** : Les mods sont chargés par ordre alphabétique. Utilisez des préfixes numériques si nécessaire (ex: `@1_CF`, `@2_COT`)
-- Le dossier `validation/mods/` est gitignored (sauf README.md)
+- Le dossier `validate/mods/` est gitignored (sauf README.md)
 
 ## Publication sur le Steam Workshop
 
-Le script `publish.bat` fournit un workflow complet : build, validation, signature et publication sur le Steam Workshop via SteamCMD.
+Le script `publish.bat` fournit un workflow complet : build, validate, signature et publication sur le Steam Workshop via SteamCMD.
 
 ### Configuration de SteamCMD
 
@@ -221,7 +237,7 @@ Cela va :
 | `--changelog "texte"` | Note de changement pour le Steam Workshop |
 | `--workshop-id ID` | ID Steam Workshop (ou définir dans `.env`) |
 | `--skip-build` | Ignorer l'étape de build (utiliser les PBO existants) |
-| `--skip-validate` | Ignorer l'étape de validation des scripts |
+| `--skip-validate` | Ignorer l'étape de validate des scripts |
 | `--skip-sign` | Ignorer l'étape de signature des PBO |
 | `--skip-publish` | Compiler et signer uniquement, sans upload |
 | `--dry-run` | Prévisualiser ce qui serait fait sans exécuter |
@@ -235,7 +251,7 @@ publish.bat --version 1.0.0 --changelog "Corrections de bugs et nouvelles foncti
 # Compiler et signer uniquement (sans upload)
 publish.bat --version 1.0.0 --skip-publish
 
-# Ignorer la validation (non recommandé)
+# Ignorer la validate (non recommandé)
 publish.bat --version 1.0.0 --skip-validate
 
 # Prévisualiser ce qui se passerait
@@ -308,7 +324,7 @@ DayZServer_x64.exe -config=serverDZ.cfg -mod=@Swarm
 
 1. Créez/modifiez les fichiers dans le sous-dossier `src/` approprié
 2. Mettez à jour `config.cpp` si vous ajoutez de nouvelles classes
-3. Exécutez `validate_scripts.bat` pour vérifier que les scripts compilent
+3. Exécutez `validate.bat` pour vérifier que les scripts compilent
 4. Testez localement avec DayZ
 5. Soumettez une pull request
 

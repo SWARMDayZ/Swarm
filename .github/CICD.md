@@ -194,7 +194,7 @@ git push origin v1.2.0
 
 ```batch
 REM Build all packages (no signing)
-build_all.bat --version 1.2.0
+build.bat --version 1.2.0
 
 REM Build, sign, and publish (local machine with DayZ Tools)
 publish.bat --version 1.2.0

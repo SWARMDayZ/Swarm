@@ -99,14 +99,14 @@ if "!VERSION!"=="" (
     echo   --changelog "text"    Change note for Steam Workshop
     echo   --workshop-id ID      Steam Workshop ID ^(or set WORKSHOP_ID in .env^)
     echo   --skip-build          Skip the build step ^(use existing PBOs^)
-    echo   --skip-validate       Skip script validation step
+    echo   --skip-validate       Skip script validate step
     echo   --skip-sign           Skip the signing step
     echo   --skip-publish        Build and sign only, don't publish to Workshop
     echo   --dry-run             Show what would be done without executing
     echo.
     echo Environment Variables ^(set in .env file^):
     echo   DAYZ_TOOLS            Path to DayZ Tools installation
-    echo   DAYZ_SERVER           Path to DayZ Server ^(for validation^)
+    echo   DAYZ_SERVER           Path to DayZ Server ^(for validate^)
     echo   STEAM_USERNAME        Steam account username
     echo   WORKSHOP_ID           Steam Workshop item ID
     echo.
@@ -176,10 +176,10 @@ if "!SKIP_BUILD!"=="1" (
     echo.
 ) else (
     if "!DRY_RUN!"=="1" (
-        echo [DRY RUN] Would execute: build_all.bat --version !VERSION!
+        echo [DRY RUN] Would execute: build.bat --version !VERSION!
         echo.
     ) else (
-        call "%~dp0build_all.bat" --version !VERSION!
+        call "%~dp0build.bat" --version !VERSION!
 
         if !ERRORLEVEL! NEQ 0 (
             echo ERROR: Build failed!
@@ -214,39 +214,39 @@ echo ========================================
 echo.
 
 if "!SKIP_VALIDATE!"=="1" (
-    echo Skipping validation step ^(--skip-validate specified^)
+    echo Skipping validate step ^(--skip-validate specified^)
     echo.
     goto :step3
 )
 
-REM Check if DAYZ_SERVER is set (required for validation)
+REM Check if DAYZ_SERVER is set (required for validate)
 if not defined DAYZ_SERVER (
     echo WARNING: DAYZ_SERVER environment variable not set!
-    echo Skipping script validation.
+    echo Skipping script validate.
     echo.
-    echo To enable validation, add to your .env file:
+    echo To enable validate, add to your .env file:
     echo   DAYZ_SERVER=C:\Path\To\DayZServer
     echo.
     goto :step3
 )
 
 if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would execute: validate_scripts.bat --skip-build
+    echo [DRY RUN] Would execute: validate.bat --skip-build
     echo.
     goto :step3
 )
 
-echo Running script validation using DayZ Server...
+echo Running script validate using DayZ Server...
 echo.
 
-call "%~dp0validate_scripts.bat" --skip-build
+call "%~dp0validate.bat" --skip-build
 
 if !ERRORLEVEL! NEQ 0 (
     echo.
-    echo ERROR: Script validation failed!
+    echo ERROR: Script validate failed!
     echo.
     echo Fix the script errors above before publishing.
-    echo You can skip validation with --skip-validate ^(not recommended^)
+    echo You can skip validate with --skip-validate ^(not recommended^)
     goto :eof
 )
 

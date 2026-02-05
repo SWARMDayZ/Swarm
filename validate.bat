@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 echo ========================================
-echo DayZ Script Validation
+echo DayZ Script Validate
 echo ========================================
 echo.
 
@@ -12,26 +12,36 @@ set "_psscript=%~dp0scripts\load_env.ps1"
 set "_tmpenv=%TEMP%\_dayz_env_val.tmp"
 if not exist "!_envfile!" goto :skip_env
 if not exist "!_psscript!" goto :skip_env
-REM Use PowerShell to safely read .env and write to temp file
+
+REM Load DAYZ_SERVER
 powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName DAYZ_SERVER > "!_tmpenv!" 2>nul
-if not exist "!_tmpenv!" goto :skip_env
-set /p DAYZ_SERVER=<"!_tmpenv!"
-del "!_tmpenv!" >nul 2>&1
+if exist "!_tmpenv!" (
+    set /p DAYZ_SERVER=<"!_tmpenv!"
+    del "!_tmpenv!" >nul 2>&1
+)
+
+REM Load MODS
+powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName MODS > "!_tmpenv!" 2>nul
+if exist "!_tmpenv!" (
+    set /p MODS=<"!_tmpenv!"
+    del "!_tmpenv!" >nul 2>&1
+)
+
 :skip_env
 
 REM Configuration
 set MOD_PATH=%~dp0dist\@Swarm
-set VALIDATION_DIR=%~dp0.validation_temp
-set VALIDATION_CFG_DIR=%~dp0validation
-set VALIDATION_PORT=2399
-set VALIDATION_TIMEOUT=60
+set VALIDATE_DIR=%~dp0.validate_temp
+set VALIDATE_CFG_DIR=%~dp0validate
+set VALIDATE_PORT=2399
+set VALIDATE_TIMEOUT=60
 set SCRIPT_ERRORS_FOUND=0
 
 REM Parse arguments
 :parse_args
 if "%~1"=="" goto :done_args
 if /i "%~1"=="--timeout" (
-    set "VALIDATION_TIMEOUT=%~2"
+    set "VALIDATE_TIMEOUT=%~2"
     shift
     shift
     goto :parse_args
@@ -68,50 +78,93 @@ if not exist "!DAYZ_SERVER!\DayZServer_x64.exe" (
 )
 
 echo Using DayZ Server: !DAYZ_SERVER!
-echo Validation timeout: %VALIDATION_TIMEOUT% seconds
+echo Validate timeout: %VALIDATE_TIMEOUT% seconds
 echo.
 
 REM Check if mod is built
 if not exist "%MOD_PATH%\Addons" (
-    echo ERROR: Mod not built! Run build_all.bat first.
+    echo ERROR: Mod not built! Run build.bat first.
     echo Expected: %MOD_PATH%\Addons
     goto :error
 )
 
-REM Select validation config (serverDZ.cfg if exists, otherwise serverDZ.default.cfg)
-set VALIDATION_CFG=
-if exist "%VALIDATION_CFG_DIR%\serverDZ.cfg" (
-    set "VALIDATION_CFG=%VALIDATION_CFG_DIR%\serverDZ.cfg"
+REM Select validate config (serverDZ.cfg if exists, otherwise serverDZ.default.cfg)
+set VALIDATE_CFG=
+if exist "%VALIDATE_CFG_DIR%\serverDZ.cfg" (
+    set "VALIDATE_CFG=%VALIDATE_CFG_DIR%\serverDZ.cfg"
     echo Using custom config: serverDZ.cfg
-) else if exist "%VALIDATION_CFG_DIR%\serverDZ.default.cfg" (
-    set "VALIDATION_CFG=%VALIDATION_CFG_DIR%\serverDZ.default.cfg"
+) else if exist "%VALIDATE_CFG_DIR%\serverDZ.default.cfg" (
+    set "VALIDATE_CFG=%VALIDATE_CFG_DIR%\serverDZ.default.cfg"
     echo Using default config: serverDZ.default.cfg
 ) else (
-    echo ERROR: No validation config found!
+    echo ERROR: No validate config found!
     echo.
     echo Please create one of:
-    echo   - %VALIDATION_CFG_DIR%\serverDZ.cfg ^(custom^)
-    echo   - %VALIDATION_CFG_DIR%\serverDZ.default.cfg ^(default^)
+    echo   - %VALIDATE_CFG_DIR%\serverDZ.cfg ^(custom^)
+    echo   - %VALIDATE_CFG_DIR%\serverDZ.default.cfg ^(default^)
     echo.
-    echo Creating default validation config...
-    if not exist "%VALIDATION_CFG_DIR%" mkdir "%VALIDATION_CFG_DIR%"
-    set "VALIDATION_CFG=%VALIDATION_CFG_DIR%\serverDZ.default.cfg"
+    echo Creating default validate config...
+    if not exist "%VALIDATE_CFG_DIR%" mkdir "%VALIDATE_CFG_DIR%"
+    set "VALIDATE_CFG=%VALIDATE_CFG_DIR%\serverDZ.default.cfg"
     call :create_default_config
 )
 
 REM Build mod list (dependency mods first, then @Swarm last)
-set "VALIDATION_MODS_DIR=%VALIDATION_CFG_DIR%\mods"
+set "VALIDATE_MODS_DIR=%VALIDATE_CFG_DIR%\mods"
 set "MOD_LIST="
 set "DEPENDENCY_COUNT=0"
 
-if exist "%VALIDATION_MODS_DIR%" (
-    for /d %%d in ("%VALIDATION_MODS_DIR%\@*") do (
-        if "!MOD_LIST!"=="" (
-            set "MOD_LIST=%%d"
+REM Use MODS env variable if set, otherwise scan validate\mods directory
+if defined MODS (
+    echo Using MODS from environment variable: !MODS!
+    
+    REM Replace semicolon separators with mod paths
+    for %%m in ("!MODS:;=" "!") do (
+        set "MOD_NAME=%%~m"
+        REM Remove quotes
+        set "MOD_NAME=!MOD_NAME:"=!"
+        
+        REM Check in validate\mods directory
+        if exist "%VALIDATE_MODS_DIR%\!MOD_NAME!" (
+            if "!MOD_LIST!"=="" (
+                set "MOD_LIST=%VALIDATE_MODS_DIR%\!MOD_NAME!"
+            ) else (
+                set "MOD_LIST=!MOD_LIST!;%VALIDATE_MODS_DIR%\!MOD_NAME!"
+            )
+            set /a DEPENDENCY_COUNT+=1
         ) else (
-            set "MOD_LIST=!MOD_LIST!;%%d"
+            echo WARNING: Mod !MOD_NAME! not found in %VALIDATE_MODS_DIR%
         )
-        set /a DEPENDENCY_COUNT+=1
+    )
+    
+    if !DEPENDENCY_COUNT! GTR 0 (
+        echo Found !DEPENDENCY_COUNT! dependency mod^(s^) from MODS env:
+        for %%m in ("!MODS:;=" "!") do (
+            set "MOD_NAME=%%~m"
+            set "MOD_NAME=!MOD_NAME:"=!"
+            echo   - !MOD_NAME!
+        )
+        echo.
+    )
+) else (
+    REM No MODS env variable, scan validate\mods directory
+    if exist "%VALIDATE_MODS_DIR%" (
+        for /d %%d in ("%VALIDATE_MODS_DIR%\@*") do (
+            if "!MOD_LIST!"=="" (
+                set "MOD_LIST=%%d"
+            ) else (
+                set "MOD_LIST=!MOD_LIST!;%%d"
+            )
+            set /a DEPENDENCY_COUNT+=1
+        )
+        
+        if !DEPENDENCY_COUNT! GTR 0 (
+            echo Found !DEPENDENCY_COUNT! dependency mod^(s^) in validate\mods:
+            for /d %%d in ("%VALIDATE_MODS_DIR%\@*") do (
+                echo   - %%~nxd
+            )
+            echo.
+        )
     )
 )
 
@@ -123,29 +176,24 @@ if "!MOD_LIST!"=="" (
 )
 
 if !DEPENDENCY_COUNT! GTR 0 (
-    echo Found !DEPENDENCY_COUNT! dependency mod^(s^) in validation\mods:
-    for /d %%d in ("%VALIDATION_MODS_DIR%\@*") do (
-        echo   - %%~nxd
-    )
-    echo.
     echo @Swarm will load last ^(after dependencies^)
     echo.
 ) else (
-    echo No dependency mods found in validation\mods
+    echo No dependency mods found
     echo.
 )
 
-REM Prepare validation directory
-echo Preparing validation environment...
-if exist "%VALIDATION_DIR%" rmdir /s /q "%VALIDATION_DIR%"
-mkdir "%VALIDATION_DIR%"
+REM Prepare validate directory
+echo Preparing validate environment...
+if exist "%VALIDATE_DIR%" rmdir /s /q "%VALIDATE_DIR%"
+mkdir "%VALIDATE_DIR%"
 
-REM Copy validation config to temp directory
-copy "!VALIDATION_CFG!" "%VALIDATION_DIR%\serverDZ.cfg" >nul
+REM Copy validate config to temp directory
+copy "!VALIDATE_CFG!" "%VALIDATE_DIR%\serverDZ.cfg" >nul
 
 echo.
 echo ========================================
-echo Starting DayZ Server for validation...
+echo Starting DayZ Server for validate...
 echo ========================================
 echo.
 echo Mods: !MOD_LIST!
@@ -154,11 +202,11 @@ echo This may take 30-60 seconds...
 echo.
 
 REM Start server in background
-start "DayZScriptValidation" /B /MIN "!DAYZ_SERVER!\DayZServer_x64.exe" ^
+start "DayZScriptValidate" /B /MIN "!DAYZ_SERVER!\DayZServer_x64.exe" ^
     "-mod=!MOD_LIST!" ^
     -config=serverDZ.cfg ^
-    -port=%VALIDATION_PORT% ^
-    "-profiles=%VALIDATION_DIR%" ^
+    -port=%VALIDATE_PORT% ^
+    "-profiles=%VALIDATE_DIR%" ^
     -doLogs ^
     -adminLog
 
@@ -183,7 +231,7 @@ if !ERRORLEVEL! NEQ 0 (
 )
 
 REM Check if RPT file exists and has content
-for %%f in ("%VALIDATION_DIR%\DayZServer_x64*.RPT") do (
+for %%f in ("%VALIDATE_DIR%\DayZServer_x64*.RPT") do (
     REM Check for script errors early (server might be stuck on error dialog)
     findstr /i /c:"SCRIPT ERROR" /c:"SCRIPT  (E)" /c:"Compile error" /c:"Can't compile" /c:"Cannot compile" /c:"Fatal error" /c:"ErrorModule" /c:"Expected '" "%%f" >nul 2>&1
     if !ERRORLEVEL! EQU 0 (
@@ -211,28 +259,28 @@ for %%f in ("%VALIDATION_DIR%\DayZServer_x64*.RPT") do (
     )
 )
 
-if %WAIT_COUNT% GEQ %VALIDATION_TIMEOUT% (
+if %WAIT_COUNT% GEQ %VALIDATE_TIMEOUT% (
     echo.
-    echo Validation timeout reached (%VALIDATION_TIMEOUT%s)
+    echo Validate timeout reached (%VALIDATE_TIMEOUT%s)
     echo Checking logs for errors...
     set "TIMEOUT_OCCURRED=1"
     goto :check_results
 )
 
-echo   Waiting... (%WAIT_COUNT%/%VALIDATION_TIMEOUT%s)
+echo   Waiting... (%WAIT_COUNT%/%VALIDATE_TIMEOUT%s)
 goto :wait_loop
 
 :check_results
 echo.
 echo ========================================
-echo Stopping validation server...
+echo Stopping validate server...
 echo ========================================
 
 REM Give server time to flush logs before killing
 timeout /t 2 /nobreak >nul
 
 REM Kill the server process
-taskkill /FI "WINDOWTITLE eq DayZScriptValidation" /F >nul 2>&1
+taskkill /FI "WINDOWTITLE eq DayZScriptValidate" /F >nul 2>&1
 timeout /t 3 /nobreak >nul
 taskkill /IM DayZServer_x64.exe /F >nul 2>&1
 
@@ -251,7 +299,7 @@ if defined EARLY_ERROR_FOUND (
 )
 
 REM Check for crash logs first (most reliable error indicator)
-for %%f in ("%VALIDATION_DIR%\crash_*.log") do (
+for %%f in ("%VALIDATE_DIR%\crash_*.log") do (
     if exist "%%f" (
         echo Found crash log: %%~nxf
         set "FOUND_ERRORS=1"
@@ -259,7 +307,7 @@ for %%f in ("%VALIDATION_DIR%\crash_*.log") do (
 )
 
 REM Check for script errors in RPT files
-for %%f in ("%VALIDATION_DIR%\*.RPT" "%VALIDATION_DIR%\*.log" "%VALIDATION_DIR%\*.mdmp") do (
+for %%f in ("%VALIDATE_DIR%\*.RPT" "%VALIDATE_DIR%\*.log" "%VALIDATE_DIR%\*.mdmp") do (
     if exist "%%f" (
         REM Check for crash dumps (indicates server crashed)
         if "%%~xf"==".mdmp" (
@@ -305,7 +353,7 @@ if defined FOUND_ERRORS (
     
     REM Display crash logs first (most useful info)
     set "CRASH_LOG_FOUND="
-    for %%f in ("%VALIDATION_DIR%\crash_*.log") do (
+    for %%f in ("%VALIDATE_DIR%\crash_*.log") do (
         if exist "%%f" (
             set "CRASH_LOG_FOUND=1"
             echo ========================================
@@ -318,7 +366,7 @@ if defined FOUND_ERRORS (
     )
     
     REM Display script_*.log files if present
-    for %%f in ("%VALIDATION_DIR%\script_*.log") do (
+    for %%f in ("%VALIDATE_DIR%\script_*.log") do (
         if exist "%%f" (
             echo ========================================
             echo SCRIPT LOG: %%~nxf
@@ -335,7 +383,7 @@ if defined FOUND_ERRORS (
         echo Error details from RPT logs:
         echo ----------------------------------------
         
-        for %%f in ("%VALIDATION_DIR%\*.RPT") do (
+        for %%f in ("%VALIDATE_DIR%\*.RPT") do (
             if exist "%%f" (
                 echo.
                 echo From: %%~nxf
@@ -350,7 +398,7 @@ if defined FOUND_ERRORS (
     )
     
     REM Check for crash dumps
-    for %%f in ("%VALIDATION_DIR%\*.mdmp") do (
+    for %%f in ("%VALIDATE_DIR%\*.mdmp") do (
         if exist "%%f" (
             echo.
             echo [CRASH DUMP] %%~nxf
@@ -359,10 +407,10 @@ if defined FOUND_ERRORS (
     
     echo.
     echo ========================================
-    echo VALIDATION FAILED - Script errors found
+    echo VALIDATE FAILED - Script errors found
     echo ========================================
     echo.
-    echo Logs preserved at: %VALIDATION_DIR%
+    echo Logs preserved at: %VALIDATE_DIR%
     goto :error_keep_logs
 )
 
@@ -376,19 +424,19 @@ if defined TIMEOUT_OCCURRED (
 )
 
 REM Cleanup
-echo Cleaning up validation files...
-if exist "%VALIDATION_DIR%" rmdir /s /q "%VALIDATION_DIR%"
+echo Cleaning up validate files...
+if exist "%VALIDATE_DIR%" rmdir /s /q "%VALIDATE_DIR%"
 
 echo.
 echo ========================================
-echo VALIDATION PASSED
+echo VALIDATE PASSED
 echo ========================================
 goto :end
 
 :create_default_config
-REM Create a minimal server config for validation
+REM Create a minimal server config for validate
 (
-echo hostname = "Swarm Script Validation";
+echo hostname = "Swarm Script Validate";
 echo password = "";
 echo passwordAdmin = "admin";
 echo maxPlayers = 1;
@@ -408,20 +456,20 @@ echo instanceId = 99;
 echo storageAutoFix = 0;
 echo respawnTime = 0;
 echo Missions = {
-echo     class Swarm_Validation {
+echo     class Swarm_Validate {
 echo         template = "dayzOffline.chernarusplus";
 echo     };
 echo };
-) > "%VALIDATION_CFG_DIR%\serverDZ.default.cfg"
-echo Created: %VALIDATION_CFG_DIR%\serverDZ.default.cfg
+) > "%VALIDATE_CFG_DIR%\serverDZ.default.cfg"
+echo Created: %VALIDATE_CFG_DIR%\serverDZ.default.cfg
 goto :eof
 
 :show_help
 echo.
-echo Usage: validate_scripts.bat [options]
+echo Usage: validate.bat [options]
 echo.
 echo Options:
-echo   --timeout N    Set validation timeout in seconds (default: 60)
+echo   --timeout N    Set validate timeout in seconds (default: 60)
 echo   --skip-build   Skip build check (assume mod is already built)
 echo   --help         Show this help message
 echo.
@@ -430,24 +478,24 @@ echo   DAYZ_SERVER    Path to DayZ Server installation (required)
 echo.
 echo Server Config:
 echo   The script looks for server configs in this order:
-echo     1. validation\serverDZ.cfg         (custom - for your specific map)
-echo     2. validation\serverDZ.default.cfg (default - Chernarus offline)
+echo     1. validate\serverDZ.cfg         (custom - for your specific map)
+echo     2. validate\serverDZ.default.cfg (default - Chernarus offline)
 echo.
 echo   To use a different map, copy serverDZ.default.cfg to serverDZ.cfg
 echo   and modify the Missions class template.
 echo.
 echo Dependency Mods:
 echo   If your mod depends on other mods (e.g., CF, COT), place them in:
-echo     validation\mods\
+echo     validate\mods\
 echo.
 echo   Example structure:
-echo     validation\mods\@CF\
-echo     validation\mods\@Community-Online-Tools\
+echo     validate\mods\@CF\
+echo     validate\mods\@Community-Online-Tools\
 echo.
 echo   The script will automatically detect and load these mods.
 echo.
 echo Example:
-echo   validate_scripts.bat --timeout 90
+echo   validate.bat --timeout 90
 echo.
 goto :end
 
@@ -457,7 +505,7 @@ exit /b 1
 
 :error
 echo.
-if exist "%VALIDATION_DIR%" rmdir /s /q "%VALIDATION_DIR%"
+if exist "%VALIDATE_DIR%" rmdir /s /q "%VALIDATE_DIR%"
 endlocal
 exit /b 1
 
