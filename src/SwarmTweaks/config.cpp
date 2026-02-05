@@ -19,7 +19,7 @@ class CfgVehicles
         scope = 2;                               
         displayName = "$STR_CfgVehicles_FishingRod0"; 
         descriptionShort = "$STR_CfgVehicles_FishingRod1";
-        inventorySlot[] = {"Shoulder", "Melee"};
+        inventorySlot[] = {"Shoulder", "Melee", "Backpack_1"};
     };
 
     class Tripod;
@@ -29,7 +29,7 @@ class CfgVehicles
         scope = 2;
         displayName = "$STR_CfgVehicles_Tripod0";
         descriptionShort = "$STR_CfgVehicles_Tripod1";
-        inventorySlot[] = {"Shoulder", "Melee", "CookingTripod"};
+        inventorySlot[] = {"Shoulder", "Melee", "CookingTripod", "Backpack_1"};
     };
 };
 
