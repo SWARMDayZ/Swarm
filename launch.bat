@@ -269,7 +269,6 @@ if exist "%LAUNCH_TEMP_DIR%\PermissionsFramework\Players\*.json" (
 )
 echo.
 
-REM 
 REM Build mod list
 set "VALIDATE_MODS_DIR=%VALIDATE_CFG_DIR%\mods"
 set "MOD_LIST="
