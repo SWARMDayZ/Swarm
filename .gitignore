@@ -2,10 +2,12 @@
 .env*
 !.env.example
 
-# Custom validation config (use serverDZ.default.cfg as template)
-validation/serverDZ.cfg
-validation/mods/*
-!validation/mods/README.md
+# Custom validate config (use serverDZ.default.cfg as template)
+validate/*
+!validate/serverDZ.default.cfg
+!validate/mods/
+validate/mods/*
+!validate/mods/README.md
 
 # Build output
 dist/
@@ -17,7 +19,8 @@ dist/
 *.tmp
 *.bak
 .build_temp/
-.validation_temp/
+.validate_temp/
+.launch_temp/
 
 # IDE
 .vs/
