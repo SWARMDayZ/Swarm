@@ -9,16 +9,6 @@ modded class MissionGameplay
         {
             // Toggle the setting
             SwarmSpectatorSettings.LockOnTarget = !SwarmSpectatorSettings.LockOnTarget;
-            
-            // Show feedback message in chat
-            if (SwarmSpectatorSettings.LockOnTarget)
-            {
-                GetGame().Chat("Lock On Target: ENABLED", "colorFriendly");
-            }
-            else
-            {
-                GetGame().Chat("Lock On Target: DISABLED", "colorImportant");
-            }
         }
     }
 }
