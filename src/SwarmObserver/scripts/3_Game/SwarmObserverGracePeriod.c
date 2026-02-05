@@ -83,6 +83,14 @@ class SwarmObserverGracePeriodManager
 		{
 			OnGracePeriodExpired(expiredSteamID);
 		}
+		
+		// If there are no more active grace periods, stop the repeating timer
+		if (m_ActiveGracePeriods.Count() == 0 && m_TimerRunning)
+		{
+			SwarmObserverGracePeriodManager manager = SwarmObserverGracePeriodManager.GetInstance();
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(manager.CheckExpiredGracePeriods);
+			m_TimerRunning = false;
+		}
 	}
 	
 	// Called when grace period timer expires
