@@ -77,12 +77,23 @@ class SwarmObserverPlayerRecord
 	}
 	
 	// Mark violations as acknowledged
+	
+	// Helper to format date/time components with leading zeros to ensure
+	// consistent timestamp formatting for reliable string comparison.
+	private string FormatTwoDigits(int value)
+	{
+		if (value < 10)
+			return "0" + value.ToString();
+		
+		return value.ToString();
+	}
+	
 	void AcknowledgeViolations()
 	{
 		int year, month, day, hour, minute, second;
 		GetYearMonthDay(year, month, day);
 		GetHourMinuteSecond(hour, minute, second);
-		LastAcknowledgedTimestamp = day.ToString() + "/" + month.ToString() + "/" + year.ToString() + " " + hour.ToString() + ":" + minute.ToString() + ":" + second.ToString();
+		LastAcknowledgedTimestamp = FormatTwoDigits(day) + "/" + FormatTwoDigits(month) + "/" + year.ToString() + " " + FormatTwoDigits(hour) + ":" + FormatTwoDigits(minute) + ":" + FormatTwoDigits(second);
 	}
 }
 
