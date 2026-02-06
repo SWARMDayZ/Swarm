@@ -247,11 +247,20 @@ class SwarmObserverHistory
 		GetHourMinuteSecond(hour, minute, second);
 		
 		// Zero-pad date and time components to match webhook timestamp format (e.g., "05/02/2025 09:15:03")
-		string dayStr = (day < 10) ? "0" + day.ToString() : day.ToString();
-		string monthStr = (month < 10) ? "0" + month.ToString() : month.ToString();
-		string hourStr = (hour < 10) ? "0" + hour.ToString() : hour.ToString();
-		string minuteStr = (minute < 10) ? "0" + minute.ToString() : minute.ToString();
-		string secondStr = (second < 10) ? "0" + second.ToString() : second.ToString();
+		string dayStr = day.ToString();
+		if (day < 10) dayStr = "0" + dayStr;
+		
+		string monthStr = month.ToString();
+		if (month < 10) monthStr = "0" + monthStr;
+		
+		string hourStr = hour.ToString();
+		if (hour < 10) hourStr = "0" + hourStr;
+		
+		string minuteStr = minute.ToString();
+		if (minute < 10) minuteStr = "0" + minuteStr;
+		
+		string secondStr = second.ToString();
+		if (second < 10) secondStr = "0" + secondStr;
 		
 		string timestamp = dayStr + "/" + monthStr + "/" + year.ToString() + " " + hourStr + ":" + minuteStr + ":" + secondStr;
 		

@@ -15,11 +15,8 @@ modded class InGameMenu
 				// Player is in restricted area - show warning dialog
 				Print("[SwarmObserver] Player attempting disconnect from restricted area: " + area.Name);
 				
-				// Close this menu first
-				Close();
-				
-				// Show warning dialog
-				GetGame().GetUIManager().EnterScriptedMenu(SwarmObserverConstants.MENU_SWARM_OBSERVER_WARNING, null);
+				// Open warning menu on top of InGameMenu (don't close InGameMenu)
+				GetGame().GetUIManager().EnterScriptedMenu(SwarmObserverConstants.MENU_SWARM_OBSERVER_WARNING, GetGame().GetUIManager().GetMenu());
 				
 				// Prevent the default disconnect action
 				return;

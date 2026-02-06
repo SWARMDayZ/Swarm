@@ -42,6 +42,13 @@ if exist "!_tmpenv!" (
     del "!_tmpenv!" >nul 2>&1
 )
 
+REM Load DAYZ_PROFILE (for client profiles/logs)
+powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName DAYZ_PROFILE > "!_tmpenv!" 2>nul
+if exist "!_tmpenv!" (
+    set /p DAYZ_PROFILE=<"!_tmpenv!"
+    del "!_tmpenv!" >nul 2>&1
+)
+
 :skip_env
 
 REM Configuration
@@ -88,49 +95,39 @@ if !ERRORLEVEL! EQU 0 (
     timeout /t 2 /nobreak >nul
 )
 
-REM Ensure BattleEye folders are properly set up
-echo Checking BattleEye setup...
-
-REM Restore client BattleEye if it was previously disabled
-if exist "!DAYZ_CLIENT!\BattlEye.disabled" (
-    echo Restoring BattleEye in client...
-    move "!DAYZ_CLIENT!\BattlEye.disabled" "!DAYZ_CLIENT!\BattlEye" >nul 2>&1
-    if !ERRORLEVEL! EQU 0 (
-        echo   Client BattleEye restored successfully.
-    ) else (
-        echo   Warning: Could not restore client BattleEye folder.
-    )
-)
-
-REM Restore server BattleEye if it was previously disabled
-if exist "!DAYZ_SERVER!\BattlEye.disabled" (
-    echo Restoring BattleEye in server...
-    move "!DAYZ_SERVER!\BattlEye.disabled" "!DAYZ_SERVER!\BattlEye" >nul 2>&1
-    if !ERRORLEVEL! EQU 0 (
-        echo   Server BattleEye restored successfully.
-    ) else (
-        echo   Warning: Could not restore server BattleEye folder.
-    )
-)
-
-REM Verify BattleEye folders exist
-if not exist "!DAYZ_CLIENT!\BattlEye" (
+REM Check for DAYZ_CLIENT environment variable
+if not defined DAYZ_CLIENT (
+    echo ERROR: DAYZ_CLIENT environment variable not set!
     echo.
-    echo ERROR: BattleEye folder not found in client!
-    echo   Location: !DAYZ_CLIENT!\BattlEye
+    echo Please set DAYZ_CLIENT in your .env file:
+    echo   DAYZ_CLIENT=C:\Path\To\DayZ
     echo.
-    echo This will cause the client to fail to start.
-    echo Please verify your DayZ installation or reinstall BattleEye.
     goto :error
 )
 
-if not exist "!DAYZ_SERVER!\BattlEye" (
+REM Check for DAYZ_SERVER environment variable
+if not defined DAYZ_SERVER (
+    echo ERROR: DAYZ_SERVER environment variable not set!
     echo.
-    echo ERROR: BattleEye folder not found in server!
-    echo   Location: !DAYZ_SERVER!\BattlEye
+    echo Please set DAYZ_SERVER in your .env file:
+    echo   DAYZ_SERVER=C:\Path\To\DayZServer
     echo.
-    echo This will cause the server to crash on startup.
-    echo Please verify your DayZ Server installation or reinstall BattleEye.
+    goto :error
+)
+
+REM Verify DayZ Server exists
+if not exist "!DAYZ_SERVER!\DayZServer_x64.exe" (
+    echo ERROR: DayZServer_x64.exe not found at: !DAYZ_SERVER!
+    echo.
+    echo Please verify DAYZ_SERVER path is correct.
+    goto :error
+)
+
+REM Verify DayZ Client exists
+if not exist "!DAYZ_CLIENT!\DayZ_x64.exe" (
+    echo ERROR: DayZ_x64.exe not found at: !DAYZ_CLIENT!
+    echo.
+    echo Please verify DAYZ_CLIENT path is correct.
     goto :error
 )
 
@@ -144,9 +141,6 @@ if not exist "!DAYZ_CLIENT!\DayZ_BE.exe" (
     echo Please verify your DayZ installation.
     goto :error
 )
-
-echo BattleEye setup verified.
-echo.
 
 REM Run build if --build flag was specified
 if defined RUN_BUILD (
@@ -181,42 +175,6 @@ if defined RUN_BUILD (
         echo Signing complete.
     )
     echo.
-)
-
-REM Check for DAYZ_SERVER environment variable
-if not defined DAYZ_SERVER (
-    echo ERROR: DAYZ_SERVER environment variable not set!
-    echo.
-    echo Please set DAYZ_SERVER in your .env file:
-    echo   DAYZ_SERVER=C:\Path\To\DayZServer
-    echo.
-    goto :error
-)
-
-REM Check for DAYZ_CLIENT environment variable
-if not defined DAYZ_CLIENT (
-    echo ERROR: DAYZ_CLIENT environment variable not set!
-    echo.
-    echo Please set DAYZ_CLIENT in your .env file:
-    echo   DAYZ_CLIENT=C:\Path\To\DayZ
-    echo.
-    goto :error
-)
-
-REM Verify DayZ Server exists
-if not exist "!DAYZ_SERVER!\DayZServer_x64.exe" (
-    echo ERROR: DayZServer_x64.exe not found at: !DAYZ_SERVER!
-    echo.
-    echo Please verify DAYZ_SERVER path is correct.
-    goto :error
-)
-
-REM Verify DayZ Client exists
-if not exist "!DAYZ_CLIENT!\DayZ_x64.exe" (
-    echo ERROR: DayZ_x64.exe not found at: !DAYZ_CLIENT!
-    echo.
-    echo Please verify DAYZ_CLIENT path is correct.
-    goto :error
 )
 
 echo Using DayZ Server: !DAYZ_SERVER!
@@ -268,6 +226,35 @@ if exist "%LAUNCH_TEMP_DIR%\PermissionsFramework\Players\*.json" (
     )
 )
 echo.
+
+REM Copy profiles from existing DayZ profile directory to temp client directory (if DAYZ_PROFILE is set)
+if defined DAYZ_PROFILE (
+    echo Copying existing profiles from %DAYZ_PROFILE% to temp client directory...
+    set "FILES_COPIED=0"
+    mkdir "%LAUNCH_TEMP_DIR%\client\Users\DevClient" >nul 2>&1
+    
+    if exist "%DAYZ_PROFILE%\*.xml" (
+        copy "%DAYZ_PROFILE%\*.xml" "%LAUNCH_TEMP_DIR%\client\Users\DevClient" >nul
+        set "FILES_COPIED=1"
+    )
+    
+    if exist "%DAYZ_PROFILE%\*.DayZProfile" (
+        copy "%DAYZ_PROFILE%\*.DayZProfile" "%LAUNCH_TEMP_DIR%\client\Users\DevClient" >nul
+        set "FILES_COPIED=1"
+    )
+    
+    if exist "%DAYZ_PROFILE%\*.cfg" (
+        copy "%DAYZ_PROFILE%\*.cfg" "%LAUNCH_TEMP_DIR%\client\Users\DevClient" >nul
+        set "FILES_COPIED=1"
+    )
+    
+    if "!FILES_COPIED!"=="1" (
+        echo Profiles copied.
+    ) else (
+        echo No profile files found in %DAYZ_PROFILE%.
+    )
+    echo.
+)
 
 REM Build mod list
 set "VALIDATE_MODS_DIR=%VALIDATE_CFG_DIR%\mods"

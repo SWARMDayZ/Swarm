@@ -1,23 +1,71 @@
 class SwarmObserverDisconnectWarningMenu extends UIScriptedMenu
-{
+{	
 	private TextWidget m_TitleText;
 	private MultilineTextWidget m_MessageText;
-	private ButtonWidget m_OkButton;
-	private ButtonWidget m_CancelButton;
-	private int m_OkButtonEnableTime;
-	private bool m_OkButtonEnabled;
+	private ButtonWidget m_bOk;
+	private ButtonWidget m_bCancel;
+	private int m_iSafetyTime;
+	private bool m_bSafetyEnabled;
+	
+	void SwarmObserverDisconnectWarningMenu()
+	{
+		m_iSafetyTime = 10;
+		m_bSafetyEnabled = false;
+	}
+	
+	void ~SwarmObserverDisconnectWarningMenu()
+	{
+		GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(this.UpdateSafetyTimer);
+	}
 	
 	override Widget Init()
 	{
 		layoutRoot = GetGame().GetWorkspace().CreateWidgets("SwarmObserver/data/disconnect_warning.layout");
 		
-		// Get widget references
 		m_TitleText = TextWidget.Cast(layoutRoot.FindAnyWidget("TitleText"));
 		m_MessageText = MultilineTextWidget.Cast(layoutRoot.FindAnyWidget("MessageText"));
-		m_OkButton = ButtonWidget.Cast(layoutRoot.FindAnyWidget("OkButton"));
-		m_CancelButton = ButtonWidget.Cast(layoutRoot.FindAnyWidget("CancelButton"));
+		m_bOk = ButtonWidget.Cast(layoutRoot.FindAnyWidget("OkButton"));
+		m_bCancel = ButtonWidget.Cast(layoutRoot.FindAnyWidget("CancelButton"));
 		
-		// Set content from localized strings
+		UpdateContent();
+		UpdateSafetyButton();
+		
+		// Start safety timer countdown
+		GetGame().GetCallQueue(CALL_CATEGORY_GUI).CallLater(this.UpdateSafetyTimer, 1000, true);
+		
+		return layoutRoot;
+	}
+	
+	override bool OnClick(Widget w, int x, int y, int button)
+	{
+		super.OnClick(w, x, y, button);
+		
+		if (w == m_bOk && m_bSafetyEnabled)
+		{
+			Confirm();
+			return true;
+		}
+		else if (w == m_bCancel)
+		{
+			Cancel();
+			return true;
+		}
+
+		return false;
+	}
+	
+	override void Update(float timeslice)
+	{
+		super.Update(timeslice);
+		
+		if (GetUApi().GetInputByID(UAUIBack).LocalPress())
+		{
+			Cancel();
+		}
+	}
+	
+	void UpdateContent()
+	{
 		if (m_TitleText)
 			m_TitleText.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_WARNING_TITLE"));
 		
@@ -28,79 +76,69 @@ class SwarmObserverDisconnectWarningMenu extends UIScriptedMenu
 			message += Widget.TranslateString("#STR_SWARM_OBSERVER_WARNING_MESSAGE_3");
 			m_MessageText.SetText(message);
 		}
-		
-		// Disable OK button for 10 seconds
-		m_OkButtonEnabled = false;
-		m_OkButtonEnableTime = GetGame().GetTime() + 10000; // 10 seconds
-		
-		if (m_OkButton)
-		{
-			m_OkButton.Enable(false);
-			m_OkButton.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_BUTTON_OK") + " (10)");
-		}
-		
-		return layoutRoot;
 	}
 	
-	override void Update(float timeslice)
+	void UpdateSafetyTimer()
 	{
-		super.Update(timeslice);
-		
-		// Update OK button countdown
-		if (!m_OkButtonEnabled && m_OkButton)
+		if (m_iSafetyTime > 0)
 		{
-			int currentTime = GetGame().GetTime();
-			int remainingTime = (m_OkButtonEnableTime - currentTime) / 1000;
+			m_iSafetyTime--;
+			UpdateSafetyButton();
+		}
+		else if (!m_bSafetyEnabled)
+		{
+			m_bSafetyEnabled = true;
+			UpdateSafetyButton();
+			GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(this.UpdateSafetyTimer);
+		}
+	}
+	
+	void UpdateSafetyButton()
+	{
+		if (!m_bOk)
+			return;
 			
-			if (remainingTime <= 0)
-			{
-				m_OkButtonEnabled = true;
-				m_OkButton.Enable(true);
-				m_OkButton.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_BUTTON_OK"));
-			}
-			else
-			{
-				m_OkButton.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_BUTTON_OK") + " (" + remainingTime + ")");
-			}
+		if (m_bSafetyEnabled)
+		{
+			m_bOk.Enable(true);
+			m_bOk.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_BUTTON_OK"));
+		}
+		else
+		{
+			m_bOk.Enable(false);
+			m_bOk.SetText(Widget.TranslateString("#STR_SWARM_OBSERVER_BUTTON_OK") + " (" + m_iSafetyTime.ToString() + ")");
 		}
 	}
-	
-	override bool OnClick(Widget w, int x, int y, int button)
-	{
-		super.OnClick(w, x, y, button);
-		
-		if (w == m_OkButton && m_OkButtonEnabled)
-		{
-			// Player confirmed disconnect
-			OnOkClicked();
-			return true;
-		}
-		else if (w == m_CancelButton)
-		{
-			// Player cancelled disconnect
-			OnCancelClicked();
-			return true;
-		}
-		
-		return false;
-	}
-	
-	private void OnOkClicked()
+
+	void Confirm()
 	{
 		Print("[SwarmObserver] Player confirmed disconnect from restricted area");
 		
-		// Close menu
+		GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(this.UpdateSafetyTimer);
+		
+		// Get parent menu reference BEFORE closing this menu
+		UIScriptedMenu parentMenu = UIScriptedMenu.Cast(GetParentMenu());
+		
+		// Close this warning menu first
 		Close();
 		
-		// Proceed with disconnect
-		GetGame().GetMission().AbortMission();
+		// Close the parent InGameMenu if it exists
+		if (parentMenu)
+		{
+			parentMenu.Close();
+		}
+		
+		// Open logout menu
+		GetGame().GetUIManager().EnterScriptedMenu(SwarmObserverConstants.MENU_SWARM_OBSERVER_LOGOUT, null);
 	}
 	
-	private void OnCancelClicked()
+	void Cancel()
 	{
 		Print("[SwarmObserver] Player cancelled disconnect from restricted area");
 		
-		// Close menu
+		GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(this.UpdateSafetyTimer);
+		
+		// Close warning - InGameMenu (parent) becomes active again
 		Close();
 	}
 }

@@ -1,13 +1,5 @@
 modded class MissionServer
 {
-	// Storage for players pending restricted area check
-	private ref map<string, bool> m_SwarmObserverPendingPlayers;
-	
-	void MissionServer()
-	{
-		m_SwarmObserverPendingPlayers = new map<string, bool>;
-	}
-	
 	override void OnInit()
 	{
 		super.OnInit();
@@ -34,10 +26,7 @@ modded class MissionServer
 		if (area)
 		{
 			Print("[SwarmObserver] Player " + playerName + " disconnecting from restricted area: " + area.Name);
-			
-			// Mark player as pending (disconnecting from restricted area)
-			m_SwarmObserverPendingPlayers.Set(steamID, true);
-			
+
 			// Start grace period timer
 			SwarmObserverGracePeriodManager.StartGracePeriod(steamID, playerName, area.Name);
 		}

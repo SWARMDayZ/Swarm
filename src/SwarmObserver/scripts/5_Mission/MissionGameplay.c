@@ -21,6 +21,10 @@ modded class MissionGameplay
 			case SwarmObserverConstants.MENU_SWARM_OBSERVER_NOTICE:
 				menu = new SwarmObserverReconnectNoticeMenu;
 				break;
+			
+			case SwarmObserverConstants.MENU_SWARM_OBSERVER_LOGOUT:
+				menu = new SwarmObserverLogoutMenu;
+				break;
 		}
 		
 		if (menu)

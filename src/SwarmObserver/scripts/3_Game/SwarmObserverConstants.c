@@ -19,4 +19,5 @@ class SwarmObserverConstants
 	// Menu IDs
 	static const int MENU_SWARM_OBSERVER_WARNING = 28501;
 	static const int MENU_SWARM_OBSERVER_NOTICE = 28502;
+	static const int MENU_SWARM_OBSERVER_LOGOUT = 28503;
 }
