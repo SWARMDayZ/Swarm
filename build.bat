@@ -36,7 +36,8 @@ set OUTPUT_DIR=%~dp0dist\@Swarm\Addons
 set TEMP_DIR=%~dp0.build_temp
 set PREPROCESS_SCRIPT=%~dp0scripts\update_version.ps1
 set RUN_VALIDATE=
-set VALIDATE_TIMEOUT=60
+set VALIDATE_TIMEOUT=15
+set SIGN=
 
 REM Parse arguments
 :parse_args
@@ -55,6 +56,11 @@ if /i "%~1"=="--validate" (
 if /i "%~1"=="--timeout" (
     set "VALIDATE_TIMEOUT=%~2"
     shift
+    shift
+    goto :parse_args
+)
+if /i "%~1"=="--sign" (
+    set "SIGN=1"
     shift
     goto :parse_args
 )
@@ -105,7 +111,7 @@ for /d %%D in ("%~dp0src\*") do (
         "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
         set FIRST_BUILD=0
     ) else (
-        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -packonly
+        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
     )
     
     if !ERRORLEVEL! NEQ 0 (
@@ -147,6 +153,32 @@ echo All packages built successfully!
 echo Version: !VERSION!
 echo Output: %OUTPUT_DIR%
 echo ========================================
+
+if defined SIGN (
+    echo.
+    echo Signing packages...
+    echo.
+    REM Sign the mod
+    echo.
+    echo Signing mod...
+    set "SIGN_TOOL=!DAYZ_TOOLS!\Bin\DsUtils\DSSignFile.exe"
+    set "PRIVATE_KEY=%~dp0keys\Swarm.biprivatekey"
+    
+    if not exist "!SIGN_TOOL!" (
+        echo WARNING: DSSignFile.exe not found at: !SIGN_TOOL!
+        echo Skipping signing...
+    ) else if not exist "!PRIVATE_KEY!" (
+        echo WARNING: Private key not found at: !PRIVATE_KEY!
+        echo Skipping signing...
+    ) else (
+        for %%f in ("%OUTPUT_DIR%\*.pbo") do (
+            echo   Signing: %%~nxf
+            "!SIGN_TOOL!" "!PRIVATE_KEY!" "%%f"
+        )
+        echo Signing complete.
+    )
+    echo.
+)
 
 REM Run validate if --validate flag was specified
 if defined RUN_VALIDATE (
