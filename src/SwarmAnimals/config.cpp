@@ -1,3 +1,9 @@
+// SwarmAnimals is a mod to modify animal drops
+// Nothing more
+// But it takes a lot of files (because we wanted to make it clean and modular for future expansion, spoiler: we never did)
+// Yes this is way too much comment lines for nothing
+// Please take care of yourself ♥
+
 class CfgPatches
 {
     class SwarmAnimals

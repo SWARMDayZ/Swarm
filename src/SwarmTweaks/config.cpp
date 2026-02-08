@@ -1,3 +1,9 @@
+// SwarmTweaks is a mod that provides various tweaks to existing items in the game
+// This mod adds a new fishing rod and tripod that can be shouldered, denies player to bury
+// big bags in the ground (we want them to have a hard time with the Lantia suit), modifies
+// the BrainDisease and Influenza to make the player laugh and sneeze less, adds a temperature
+// protection bonus after spawn and finally makes the ImprovisedSuppressor use a whole duct tape to craft.
+
 class CfgPatches
 {
     class SwarmTweaks
