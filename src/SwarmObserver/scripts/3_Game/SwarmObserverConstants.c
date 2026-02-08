@@ -16,6 +16,13 @@ class SwarmObserverConstants
 	static const int DEFAULT_HISTORY_DAYS = 3;
 	static const string DEFAULT_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
 	
+	// Combat logout settings
+	static const int DEFAULT_COMBAT_DURATION_SECONDS = 300;
+	static const float DEFAULT_SHOT_PROXIMITY_RADIUS = 50.0;
+	static const float DEFAULT_EXPLOSIVE_PROXIMITY_RADIUS = 30.0;
+	static const int COMBAT_CLEANUP_INTERVAL_MS = 30000;
+	static const int MAX_COMBAT_ACTIONS_STORED = 20;
+	
 	// Menu IDs
 	static const int MENU_SWARM_OBSERVER_WARNING = 28501;
 	static const int MENU_SWARM_OBSERVER_NOTICE = 28502;

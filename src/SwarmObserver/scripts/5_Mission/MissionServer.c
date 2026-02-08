@@ -30,6 +30,22 @@ modded class MissionServer
 			// Start grace period timer
 			SwarmObserverGracePeriodManager.StartGracePeriod(steamID, playerName, area.Name);
 		}
+		
+		// Check if player was in combat
+		if (GetCombatStateManager().IsInCombat(player))
+		{
+			Print("[SwarmObserver] Player " + playerName + " disconnecting while in combat");
+			
+			// Get combat state and send webhook notification
+			CombatState combatState = GetCombatStateManager().GetCombatState(player);
+			if (combatState)
+			{
+				CombatWebhook.SendCombatLogoutNotification(player, combatState);
+			}
+		}
+		
+		// Clean up combat state for this player
+		GetCombatStateManager().RemoveCombatState(player);
 	}
 	
 	override void OnEvent(EventType eventTypeId, Param params)

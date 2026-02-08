@@ -30,12 +30,28 @@ class SwarmObserverSettings
 	int HistoryDays;
 	autoptr array<ref SwarmObserverRestrictedArea> RestrictedAreas;
 	
+	// Combat logout settings
+	bool CombatLogoutEnabled;
+	int CombatDurationSeconds;
+	float ShotProximityRadius;
+	float ExplosiveProximityRadius;
+	string CombatWebhookURL;
+	bool CombatDebugMode;
+	
 	void SwarmObserverSettings()
 	{
 		RestrictedAreas = new array<ref SwarmObserverRestrictedArea>;
 		GracePeriodSeconds = SwarmObserverConstants.DEFAULT_GRACE_PERIOD_SECONDS;
 		HistoryDays = SwarmObserverConstants.DEFAULT_HISTORY_DAYS;
 		WebhookURL = "";
+		
+		// Combat logout defaults
+		CombatLogoutEnabled = true;
+		CombatDurationSeconds = SwarmObserverConstants.DEFAULT_COMBAT_DURATION_SECONDS;
+		ShotProximityRadius = SwarmObserverConstants.DEFAULT_SHOT_PROXIMITY_RADIUS;
+		ExplosiveProximityRadius = SwarmObserverConstants.DEFAULT_EXPLOSIVE_PROXIMITY_RADIUS;
+		CombatWebhookURL = "";
+		CombatDebugMode = false;
 	}
 	
 	// Get singleton instance
@@ -66,6 +82,12 @@ class SwarmObserverSettings
 			{
 				Print("[SwarmObserver]   - " + area.Name + " at " + area.Position.ToString() + " (radius: " + area.Radius + "m)");
 			}
+			
+			Print("[SwarmObserver] Combat Logout Enabled: " + settings.CombatLogoutEnabled);
+			Print("[SwarmObserver] Combat Duration: " + settings.CombatDurationSeconds + " seconds");
+			Print("[SwarmObserver] Shot Proximity Radius: " + settings.ShotProximityRadius + "m");
+			Print("[SwarmObserver] Explosive Proximity Radius: " + settings.ExplosiveProximityRadius + "m");
+			Print("[SwarmObserver] Combat Debug Mode: " + settings.CombatDebugMode);
 		}
 		else
 		{
@@ -93,6 +115,14 @@ class SwarmObserverSettings
 		
 		RestrictedAreas.Clear();
 		RestrictedAreas.Insert(new SwarmObserverRestrictedArea("Athena-3", Vector(3592, 120, 6709), 80));
+		
+		// Combat logout defaults
+		CombatLogoutEnabled = true;
+		CombatDurationSeconds = SwarmObserverConstants.DEFAULT_COMBAT_DURATION_SECONDS;
+		ShotProximityRadius = SwarmObserverConstants.DEFAULT_SHOT_PROXIMITY_RADIUS;
+		ExplosiveProximityRadius = SwarmObserverConstants.DEFAULT_EXPLOSIVE_PROXIMITY_RADIUS;
+		CombatWebhookURL = "";
+		CombatDebugMode = false;
 	}
 	
 	// Check if a position is in any restricted area

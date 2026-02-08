@@ -56,4 +56,39 @@ modded class PlayerBase
 			}
 		}
 	}
+	
+	// Combat detection - override EEHitBy to detect damage
+	override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
+	{
+		super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+		
+		// Only process on server side
+		if (!GetGame().IsServer())
+			return;
+		
+		// Check if combat logout is enabled
+		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
+		if (!settings.CombatLogoutEnabled)
+			return;
+		
+		// Get the attacker player from the damage source
+		if (source)
+		{
+			PlayerBase attacker = PlayerBase.Cast(source.GetHierarchyRootPlayer());
+			
+			// Only register if attacker is a different player
+			if (attacker && attacker != this)
+			{
+				// Register combat action for victim (receiving damage)
+				GetCombatStateManager().RegisterCombatAction(this, attacker, "DAMAGE_RECEIVED", ammo);
+				
+				// Register combat action for attacker (dealing damage)
+				GetCombatStateManager().RegisterCombatAction(attacker, this, "DAMAGE_DEALT", ammo);
+			}
+		}
+	}
+	
+	// Note: Shot proximity detection would require modding Weapon_Base.EEFired()
+	// which is complex and deferred to Phase 2. Damage-based detection covers
+	// the primary combat logout scenarios.
 }

@@ -43,6 +43,8 @@ class SwarmObserverModule
 		// Load history (creates history database structure)
 		SwarmObserverHistory.LoadHistory();
 		
+		// Note: Combat system initializes lazily when first accessed
+		
 		Print("[SwarmObserver] Initialization complete");
 	}
 }
