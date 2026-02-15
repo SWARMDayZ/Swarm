@@ -1,26 +1,45 @@
 // Modded grenade class to detect explosive proximity
 modded class Grenade_Base
 {
-	override void EEOnCECreate()
+	override void EEItemLocationChanged(notnull InventoryLocation oldLoc, notnull InventoryLocation newLoc)
 	{
-		super.EEOnCECreate();
+		super.EEItemLocationChanged(oldLoc, newLoc);
 		
-		// Only process on server side
-		if (!GetGame().IsServer())
+		// Capture thrower when leaving hands
+		if (oldLoc.GetType() == InventoryLocationType.HANDS && newLoc.GetType() != InventoryLocationType.HANDS)
+		{
+			Print("[SwarmObserver] Grenade thrown, capturing thrower");
+			m_Thrower = PlayerBase.Cast(oldLoc.GetParent());
+
+			if (m_Thrower) {
+				Print(string.Format("[SwarmObserver] Grenade thrower: %1", m_Thrower.GetIdentity().GetName()));
+			} else {
+				Print("[SwarmObserver] Warning: Grenade thrower is null");
+			}
+		}
+		
+		//! activate grenade when it leaves player hands (safety handle released)
+		if (newLoc.GetType() != InventoryLocationType.HANDS && !IsPinned())
+		{
+			Activate();
+		}
+	}
+	
+	override void OnExplode()
+	{
+		super.OnExplode();
+		
+		if (!m_Thrower) {
+			Print("[SwarmObserver] Warning: Grenade exploded but thrower is null");
 			return;
-		
-		// Check if combat logout is enabled
-		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
-		if (!settings.CombatLogoutEnabled)
-			return;
-		
-		// Get the thrower (player who threw the grenade)
-		PlayerBase thrower = PlayerBase.Cast(GetHierarchyRootPlayer());
-		if (!thrower)
-			return;
-		
-		// Check proximity to other players
-		vector explosivePos = this.GetPosition();
-		CombatProximityDetector.CheckExplosiveProximity(thrower, explosivePos);
+		}
+
+		Print(string.Format("[SwarmObserver] Grenade exploded, checking proximity for thrower %1", m_Thrower.GetIdentity().GetName()));
+
+		// Get position of explosion (grenade's current position)
+		vector explosionPosition = GetPosition();
+
+		// Check for nearby players and register combat if needed
+		CombatProximityDetector.CheckExplosiveProximity(m_Thrower, explosionPosition);
 	}
 }

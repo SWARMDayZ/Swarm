@@ -57,12 +57,17 @@ class CombatProximityDetector
 		}
 	}
 	
+	// Override grenade base to get the player who threw it and call CheckExplosiveProximity when it explodes/lands
+	// Yes DayZ being DayZ, they did not implemented anything to know who threw a grenade c: c: c: c: c:
 	// Check for nearby players when an explosive is thrown/placed
 	static void CheckExplosiveProximity(PlayerBase thrower, vector explosivePosition)
 	{
 		if (!thrower || !GetGame().IsServer())
 			return;
 		
+		Print(string.Format("[SwarmObserver] Checking explosive proximity for %1 at position %2", 
+			thrower.GetIdentity().GetName(), explosivePosition));
+
 		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
 		if (!settings.CombatLogoutEnabled)
 			return;
@@ -71,6 +76,8 @@ class CombatProximityDetector
 		array<Man> players = new array<Man>();
 		array<Object> objects = new array<Object>();
 		array<CargoBase> proxyCargos = new array<CargoBase>();
+
+		Print(string.Format("[SwarmObserver] Searching for objects near explosive (radius: %1m)", radius));
 		
 		// Get all objects in radius
 		GetGame().GetObjectsAtPosition(explosivePosition, radius, objects, proxyCargos);

@@ -9,7 +9,7 @@ class SwarmObserverLogoutMenu extends UIScriptedMenu
 
 	void SwarmObserverLogoutMenu()
 	{
-		m_iTime = 15; // Default logout time in seconds
+		m_iTime = 30; // Default logout time in seconds
 		g_Game.SetKeyboardHandle(this);
 		m_FullTime = new FullTimeData();
 	}
