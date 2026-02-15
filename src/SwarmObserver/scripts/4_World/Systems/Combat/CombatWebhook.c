@@ -2,9 +2,9 @@
 class CombatWebhook
 {
 	// Send combat logout notification to Discord webhook
-	static void SendCombatLogoutNotification(PlayerBase player, CombatState state)
+	static void SendCombatLogoutNotification(string steamID, string playerName, vector pos, CombatState state)
 	{
-		if (!player || !state || !GetGame().IsServer())
+		if (!state || !GetGame().IsServer())
 			return;
 		
 		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
@@ -21,16 +21,6 @@ class CombatWebhook
 			Print("[SwarmObserver] Combat logout webhook URL not configured, skipping notification");
 			return;
 		}
-		
-		if (!player.GetIdentity())
-		{
-			Print("[SwarmObserver] Player identity not available for combat logout notification");
-			return;
-		}
-		
-		string playerName = player.GetIdentity().GetName();
-		string steamID = player.GetIdentity().GetPlainId();
-		vector pos = state.m_LastPosition;
 		string timestamp = GetCurrentTimestampISO();
 		int remainingTime = state.GetRemainingTime(GetGame().GetTime(), settings.CombatDurationSeconds);
 		
@@ -38,7 +28,7 @@ class CombatWebhook
 		string involvedPlayers = "";
 		for (int i = 0; i < state.m_InvolvedPlayers.Count(); i++)
 		{
-			involvedPlayers += state.m_InvolvedPlayers[i];
+			involvedPlayers += "[" + state.m_InvolvedPlayers[i] + "](https://steamcommunity.com/profiles/" + state.m_InvolvedPlayers[i] + ")";
 			if (i < state.m_InvolvedPlayers.Count() - 1)
 				involvedPlayers += ", ";
 		}
