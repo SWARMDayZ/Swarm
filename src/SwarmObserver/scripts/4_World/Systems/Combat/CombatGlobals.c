@@ -4,12 +4,7 @@
 // Get combat state manager instance
 CombatStateManager GetCombatStateManager()
 {
-	static ref CombatStateManager s_Instance;
-	if (!s_Instance)
-	{
-		s_Instance = new CombatStateManager();
-	}
-	return s_Instance;
+	return CombatStateManager.GetInstance();
 }
 
 // Get combat settings from main config

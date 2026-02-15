@@ -1,6 +1,7 @@
 // Combat state manager singleton
 class CombatStateManager
 {
+	private static ref CombatStateManager s_Instance;
 	private ref map<PlayerBase, ref CombatState> m_CombatStates;
 	private bool m_CleanupTimerRunning;
 	
@@ -10,6 +11,16 @@ class CombatStateManager
 		m_CleanupTimerRunning = false;
 		
 		Print("[SwarmObserver] CombatStateManager initialized");
+	}
+	
+	// Get singleton instance
+	static CombatStateManager GetInstance()
+	{
+		if (!s_Instance)
+		{
+			s_Instance = new CombatStateManager();
+		}
+		return s_Instance;
 	}
 	
 	// Register a combat action for a player

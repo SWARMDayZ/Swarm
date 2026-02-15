@@ -29,7 +29,7 @@ class CombatWebhook
 		}
 		
 		string playerName = player.GetIdentity().GetName();
-		string steamID = player.GetIdentity().GetId();
+		string steamID = player.GetIdentity().GetPlainId();
 		vector pos = state.m_LastPosition;
 		string timestamp = GetCurrentTimestampISO();
 		int remainingTime = state.GetRemainingTime(GetGame().GetTime(), settings.CombatDurationSeconds);
@@ -65,7 +65,7 @@ class CombatWebhook
 		jsonPayload += "        {\"name\": \"Steam ID\", \"value\": \"" + steamID + "\", \"inline\": true},\n";
 		jsonPayload += "        {\"name\": \"Timestamp\", \"value\": \"" + timestamp + "\", \"inline\": false},\n";
 		jsonPayload += "        {\"name\": \"Position\", \"value\": \"[" + pos[0].ToString() + ", " + pos[1].ToString() + ", " + pos[2].ToString() + "]\", \"inline\": false},\n";
-		jsonPayload += "        {\"name\": \"Health\", \"value\": \"" + (state.m_LastHealthLevel * 100).ToString() + "%\", \"inline\": true},\n";
+		jsonPayload += "        {\"name\": \"Health\", \"value\": \"" + (state.m_LastHealthLevel).ToString() + "%\", \"inline\": true},\n";
 		jsonPayload += "        {\"name\": \"Time Remaining\", \"value\": \"" + remainingTime.ToString() + "s\", \"inline\": true},\n";
 		jsonPayload += "        {\"name\": \"Last Damage Type\", \"value\": \"" + EscapeJSON(state.m_LastDamageType) + "\", \"inline\": false},\n";
 		jsonPayload += "        {\"name\": \"Involved Players\", \"value\": \"" + EscapeJSON(involvedPlayers) + "\", \"inline\": false},\n";

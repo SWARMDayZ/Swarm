@@ -19,7 +19,7 @@ class CombatAction
 		if (otherPlayer && otherPlayer.GetIdentity())
 		{
 			m_OtherPlayerName = otherPlayer.GetIdentity().GetName();
-			m_OtherPlayerID = otherPlayer.GetIdentity().GetId();
+			m_OtherPlayerID = otherPlayer.GetIdentity().GetPlainId();
 			m_Distance = vector.Distance(position, otherPlayer.GetPosition());
 		}
 		else

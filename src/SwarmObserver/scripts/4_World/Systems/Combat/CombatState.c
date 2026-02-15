@@ -31,7 +31,7 @@ class CombatState
 		// Add the other player to involved players if not already present
 		if (otherPlayer && otherPlayer.GetIdentity())
 		{
-			string otherPlayerID = otherPlayer.GetIdentity().GetId();
+			string otherPlayerID = otherPlayer.GetIdentity().GetPlainId();
 			if (m_InvolvedPlayers.Find(otherPlayerID) == -1)
 			{
 				m_InvolvedPlayers.Insert(otherPlayerID);

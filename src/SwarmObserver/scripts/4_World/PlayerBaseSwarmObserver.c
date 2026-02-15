@@ -87,8 +87,4 @@ modded class PlayerBase
 			}
 		}
 	}
-	
-	// Note: Shot proximity detection would require modding Weapon_Base.EEFired()
-	// which is complex and deferred to Phase 2. Damage-based detection covers
-	// the primary combat logout scenarios.
 }

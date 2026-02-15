@@ -8,10 +8,8 @@ modded class MissionServer
 		SwarmObserverModule.Initialize();
 	}
 	
-	override void OnClientDisconnectedEvent(PlayerIdentity identity, PlayerBase player, int logoutTime, bool authFailed)
-	{
-		super.OnClientDisconnectedEvent(identity, player, logoutTime, authFailed);
-		
+	override void PlayerDisconnected(PlayerBase player, PlayerIdentity identity, string uid)
+	{	
 		// Only process if we have a valid player and identity
 		if (!player || !identity)
 			return;
@@ -46,6 +44,8 @@ modded class MissionServer
 		
 		// Clean up combat state for this player
 		GetCombatStateManager().RemoveCombatState(player);
+		
+		super.PlayerDisconnected(player, identity, uid);
 	}
 	
 	override void OnEvent(EventType eventTypeId, Param params)

@@ -1,6 +1,9 @@
 // Combat proximity detection helper
 class CombatProximityDetector
 {
+	private static int s_LastShotTime = 0;
+	private static string s_LastShooterID = "";
+	
 	// Check for nearby players when a shot is fired
 	static void CheckShotProximity(PlayerBase shooter, vector shotPosition)
 	{
@@ -10,6 +13,16 @@ class CombatProximityDetector
 		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
 		if (!settings.CombatLogoutEnabled)
 			return;
+		
+		// Prevent rapid duplicate checks (debounce 50ms per shooter to filter same-shot duplicates)
+		int currentTime = GetGame().GetTime();
+		string shooterID = shooter.GetIdentity().GetPlainId();
+		if (currentTime - s_LastShotTime < 50 && shooterID == s_LastShooterID)
+		{
+			return; // Skip duplicate check for same shot
+		}
+		s_LastShotTime = currentTime;
+		s_LastShooterID = shooterID;
 		
 		float radius = settings.ShotProximityRadius;
 		array<Man> players = new array<Man>();
