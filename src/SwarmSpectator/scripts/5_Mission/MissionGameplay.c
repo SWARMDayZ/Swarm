@@ -7,7 +7,6 @@ modded class MissionGameplay
         // Toggle Lock On Target with hotkey (only when no menu is open)
         if (GetGame().GetInput().LocalPress("UASwarmSpectatorToggleLockOn") && GetGame().GetUIManager().GetMenu() == NULL)
         {
-            // Toggle the setting
             SwarmSpectatorSettings.LockOnTarget = !SwarmSpectatorSettings.LockOnTarget;
         }
     }

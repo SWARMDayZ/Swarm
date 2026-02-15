@@ -56,4 +56,60 @@ modded class PlayerBase
 			}
 		}
 	}
+	
+	// Combat detection - override EEHitBy to detect damage
+	override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
+	{		
+		// Only process on server side
+		if (!GetGame().IsServer()) {
+			super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+			return;
+		}
+		
+		// Check if combat logout is enabled
+		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
+		if (!settings.CombatLogoutEnabled) {
+			super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+			return;
+		}
+		
+		// Get the attacker player from the damage source
+		if (source)
+		{
+			PlayerBase attacker = PlayerBase.Cast(source.GetHierarchyRootPlayer());
+			
+			// Only register if attacker is a different player
+			if (attacker && attacker != this)
+			{
+				// Register combat action for victim (receiving damage)
+				GetCombatStateManager().RegisterCombatAction(this, attacker, "DAMAGE_RECEIVED", ammo);
+				
+				// Register combat action for attacker (dealing damage)
+				GetCombatStateManager().RegisterCombatAction(attacker, this, "DAMAGE_DEALT", ammo);
+			}
+		}
+
+		super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+	}
+
+	override void EEKilled(Object killer)
+	{
+		// Only process on server side
+		if (!GetGame().IsServer()) {
+			super.EEKilled(killer);
+			return;
+		}
+		
+		// Check if combat logout is enabled
+		SwarmObserverSettings settings = SwarmObserverSettings.GetInstance();
+		if (!settings.CombatLogoutEnabled) {
+			super.EEKilled(killer);
+			return;
+		}
+
+		// Delete combat state immediately on death to prevent post-death logout violations
+		GetCombatStateManager().RemoveCombatState(this);
+
+		super.EEKilled(killer);
+	}
 }

@@ -1,3 +1,8 @@
+// SwarmObserver is a mod that provides a way to observe players activity
+// This mod aims to be used as a moderation tool for server admins
+// The current implementation focuses on providing a logout menu on restricted areas and a way to track combat logout.
+// The combat logout tracking is done without informing the player, and it will be used to provide evidence for server admins to take action against players who abuse combat logout.
+
 class CfgPatches
 {
 	class SwarmObserver

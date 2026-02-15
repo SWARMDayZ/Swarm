@@ -75,6 +75,9 @@ class SwarmObserverWebhook
 		string steamProfileURL = "https://steamcommunity.com/profiles/" + steamID;
 		
 		// Build Discord webhook JSON payload with embeds
+		// TODO This could potentially contains json injection if playerName or areaName contains special characters
+		// it should NOT be possible since players are not allowed to use special characters in their names
+		// if it breaks the history, comes from here and we should implement a proper way to escape special characters in the future
 		string jsonPayload = "{\n";
 		jsonPayload += "  \"username\": \"Swarm Observer\",\n";
 		jsonPayload += "  \"content\": \"" + message + "\",\n";

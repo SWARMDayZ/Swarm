@@ -1,3 +1,8 @@
+// SwarmSpectator is a mod that overrides the COT (Community Online Tools by Jacob-Mango) spectator system to provide
+// a way to delete marker, light and lock-on target from the camera.
+// This mod is NOT a repack of COT, it needs CF and COT to work, and it only overrides the spectator camera functionality of COT.
+// The main purpose of this mod is to provide a way for server admins to film cool stuff
+
 class CfgPatches
 {
     class SwarmSpectator
