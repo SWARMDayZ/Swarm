@@ -3,5 +3,5 @@ name = "Swarm";
 timestamp = %TIMESTAMP%;
 publishedid = %PUBLISHEDID%;
 version = "%VERSION%";
-author = "Kize";
+author = "Kize & Arky";
 description = "Swarm modpack for DayZ, including SwarmTweaks, SwarmAnimals, SwarmEarplugs.";
