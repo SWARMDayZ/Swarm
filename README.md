@@ -43,7 +43,7 @@ Repack of the original [EarPlugs mod by DaemonF0rge](https://github.com/DaemonFo
 **Dependencies:** Mission module only (client-side)
 
 ### SwarmSpectator
-Enhanced spectator camera system for filming and content creation. Extends [Community Online Tools (COT)](https://github.com/Jacob-Mango/DayZ-Community-Online-Tools) spectator functionality:
+Enhanced spectator camera system for filming and content creation. Extends [Community Online Tools (COT)](https://github.com/Jacob-Mango/DayZ-CommunityOnlineTools) spectator functionality:
 
 - **Delete Marker** - Remove camera markers from spectator view
 - **Delete Light** - Remove light sources for cleaner filming
