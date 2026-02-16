@@ -369,7 +369,7 @@ echo.
 echo Options:
 echo   --timeout N    Set validate timeout in seconds (default: 60)
 echo   --skip-build   Skip build check (assume mod is already built)
-echo   --test         Include test addons when building (pass to build.bat)
+echo   --test         Reserved for compatibility with build.bat (no effect in validate.bat)
 echo   --help         Show this help message
 echo.
 echo Environment Variables:
