@@ -57,6 +57,7 @@ set VALIDATE_CFG_DIR=%~dp0validate
 set LAUNCH_TEMP_DIR=%~dp0.launch_temp
 set SERVER_PORT=2302
 set RUN_BUILD=
+set BUILD_TEST=
 
 REM Parse arguments
 :parse_args
@@ -69,6 +70,11 @@ if /i "%~1"=="--port" (
 )
 if /i "%~1"=="--build" (
     set "RUN_BUILD=1"
+    shift
+    goto :parse_args
+)
+if /i "%~1"=="--test" (
+    set "BUILD_TEST=1"
     shift
     goto :parse_args
 )
@@ -148,7 +154,14 @@ if defined RUN_BUILD (
     echo Building mod with signatures...
     echo ========================================
     echo.
-    call "%~dp0build.bat"
+    
+    REM Construct build command with optional --test flag
+    set "BUILD_CMD=%~dp0build.bat"
+    if defined BUILD_TEST (
+        set "BUILD_CMD=!BUILD_CMD! --test"
+    )
+    
+    call !BUILD_CMD!
     if !ERRORLEVEL! NEQ 0 (
         echo.
         echo ERROR: Build failed!
@@ -577,6 +590,7 @@ echo.
 echo Options:
 echo   --port N       Set server port (default: 2302)
 echo   --build        Build the mod with signatures before launching
+echo   --test         Include test addons (SwarmTest) in build
 echo   --help         Show this help message
 echo.
 echo Environment Variables:
@@ -597,8 +611,9 @@ echo.
 echo Example:
 echo   launch.bat
 echo   launch.bat --build
+echo   launch.bat --build --test
 echo   launch.bat --port 2303
-echo   launch.bat --build --port 2303
+echo   launch.bat --build --test --port 2303
 echo.
 goto :end
 
