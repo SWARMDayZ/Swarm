@@ -11,7 +11,6 @@ modded class MissionGameplay
 		super.OnUpdate(timeslice);
 		
 		// Handle chat commands
-		Input input = GetGame().GetInput();
 		PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());
 		
 		if (!player)
