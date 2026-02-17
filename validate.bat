@@ -36,6 +36,7 @@ set VALIDATE_CFG_DIR=%~dp0validate
 set VALIDATE_PORT=2399
 set VALIDATE_TIMEOUT=15
 set SCRIPT_ERRORS_FOUND=0
+set BUILD_TEST=
 
 REM Parse arguments
 :parse_args
@@ -48,6 +49,11 @@ if /i "%~1"=="--timeout" (
 )
 if /i "%~1"=="--skip-build" (
     set "SKIP_BUILD=1"
+    shift
+    goto :parse_args
+)
+if /i "%~1"=="--test" (
+    set "BUILD_TEST=1"
     shift
     goto :parse_args
 )
@@ -363,6 +369,7 @@ echo.
 echo Options:
 echo   --timeout N    Set validate timeout in seconds (default: 60)
 echo   --skip-build   Skip build check (assume mod is already built)
+echo   --test         Reserved for compatibility with build.bat (no effect in validate.bat)
 echo   --help         Show this help message
 echo.
 echo Environment Variables:
@@ -388,6 +395,7 @@ echo   The script will automatically detect and load these mods.
 echo.
 echo Example:
 echo   validate.bat --timeout 90
+echo   build.bat --test --validate
 echo.
 goto :end
 

@@ -38,6 +38,7 @@ set PREPROCESS_SCRIPT=%~dp0scripts\update_version.ps1
 set RUN_VALIDATE=
 set VALIDATE_TIMEOUT=15
 set SIGN=
+set BUILD_TEST=
 
 REM Parse arguments
 :parse_args
@@ -64,6 +65,11 @@ if /i "%~1"=="--sign" (
     shift
     goto :parse_args
 )
+if /i "%~1"=="--test" (
+    set "BUILD_TEST=1"
+    shift
+    goto :parse_args
+)
 shift
 goto :parse_args
 :done_args
@@ -83,6 +89,11 @@ if "!VERSION!"=="" (
 )
 
 echo Using version: !VERSION!
+if defined BUILD_TEST (
+    echo Build mode: Including test addons
+) else (
+    echo Build mode: Production only
+)
 echo.
 
 REM Prepare output directory
@@ -102,28 +113,48 @@ for /d %%D in ("%~dp0src\*") do (
     set /a BUILD_INDEX+=1
     set "FOLDER_NAME=%%~nxD"
     
-    echo [!BUILD_INDEX!/!FOLDER_COUNT!] Building !FOLDER_NAME!...
-    set "TEMP_SRC=%TEMP_DIR%\!FOLDER_NAME!"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%%D" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
-    
-    REM Use -clear flag only on first build
-    if !FIRST_BUILD! EQU 1 (
-        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
-        set FIRST_BUILD=0
+    REM Skip SwarmTest unless --test flag is set
+    if "!FOLDER_NAME!"=="SwarmTest" (
+        if not defined BUILD_TEST (
+            echo [!BUILD_INDEX!/!FOLDER_COUNT!] Skipping !FOLDER_NAME! ^(use --test to include^)
+            echo.
+        ) else (
+            call :build_addon "%%D" "!FOLDER_NAME!"
+        )
     ) else (
-        "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
+        call :build_addon "%%D" "!FOLDER_NAME!"
     )
-    
-    if !ERRORLEVEL! NEQ 0 (
-        echo ERROR: !FOLDER_NAME! build failed!
-        goto :error
-    )
-    echo !FOLDER_NAME! OK
-    echo.
 )
+goto :after_build
+
+:build_addon
+set "ADDON_PATH=%~1"
+set "ADDON_NAME=%~2"
+echo [!BUILD_INDEX!/!FOLDER_COUNT!] Building !ADDON_NAME!...
+set "TEMP_SRC=%TEMP_DIR%\!ADDON_NAME!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PREPROCESS_SCRIPT%" -SourceDir "%ADDON_PATH%" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
+
+REM Use -clear flag only on first build
+if !FIRST_BUILD! EQU 1 (
+    "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
+    set FIRST_BUILD=0
+) else (
+    "%ADDON_BUILDER%" "!TEMP_SRC!" "%OUTPUT_DIR%" -clear -packonly
+)
+
+if !ERRORLEVEL! NEQ 0 (
+    echo ERROR: !ADDON_NAME! build failed!
+    goto :error
+)
+echo !ADDON_NAME! OK
+echo.
+goto :eof
+
+:after_build
 
 REM Process root meta.cpp
 echo Copying mod metadata...
+if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%"
 set "TEMP_META=%TEMP_DIR%\meta.cpp"
 copy "%~dp0src\meta.cpp" "!TEMP_META!" >nul
 
@@ -185,7 +216,14 @@ if defined RUN_VALIDATE (
     echo.
     echo Running script validate...
     echo.
-    call "%~dp0validate.bat" --timeout !VALIDATE_TIMEOUT!
+    
+    REM Construct validate command with optional --test flag
+    set "VALIDATE_CMD=%~dp0validate.bat --timeout !VALIDATE_TIMEOUT!"
+    if defined BUILD_TEST (
+        set "VALIDATE_CMD=!VALIDATE_CMD! --test"
+    )
+    
+    call !VALIDATE_CMD!
     if !ERRORLEVEL! NEQ 0 (
         goto :validate_failed
     )
