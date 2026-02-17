@@ -103,10 +103,6 @@ class ActionDryFireplace : ActionContinuousBase
 			float wetnessAfter = fireplace.GetWet();
 			
 			Print(string.Format("[DryFireplace] Wetness: %1 -> %2", wetnessBefore.ToString(), wetnessAfter.ToString()));
-			
-			// Debug output to chat
-			string debugMsg = string.Format("[DryFireplace] Wetness: %1 -> %2 (removed %3)", wetnessBefore.ToString(), wetnessAfter.ToString(), (wetnessBefore - wetnessAfter).ToString());
-			action_data.m_Player.MessageAction(debugMsg);
 		}
 	}
 	
