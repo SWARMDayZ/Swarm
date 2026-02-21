@@ -55,6 +55,13 @@ modded class MissionServer
 		else
 			Print("[SwarmObserver] No logout data found for uid: " + uid);
 		
+		if (!shouldClientBeObserved(player))
+		{
+			Print("[SwarmObserver] Player " + (data ? data.PlayerName : "unknown") + " is not subject to observation, skipping");
+			super.PlayerDisconnected(player, identity, uid);
+			return;
+		}
+
 		if (data)
 		{
 			// Handle restricted area violation
@@ -126,6 +133,27 @@ modded class MissionServer
 					}
 				}
 			}
+		}
+	}
+
+	// Determine if a player should be observed by SwarmObserver
+	private bool ShouldClientBeObserved(PlayerBase player)
+	{
+		if (!player || !player.IsAlive())
+			return false;
+		
+		switch (player.GetKickOffReason())
+		{
+			case EClientKicked.SERVER_EXIT:
+				return false;
+			case EClientKicked.KICK_ALL_ADMIN:
+				return false;
+			case EClientKicked.KICK_ALL_SERVER:
+				return false;
+			case EClientKicked.SERVER_SHUTDOWN:
+				return false;
+			default:
+				return true;
 		}
 	}
 }
