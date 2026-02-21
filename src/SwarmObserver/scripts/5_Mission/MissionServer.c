@@ -137,7 +137,7 @@ modded class MissionServer
 	}
 
 	// Determine if a player should be observed by SwarmObserver
-	bool shouldClientBeObserved(PlayerBase player)
+	private bool ShouldClientBeObserved(PlayerBase player)
 	{
 		if (!player || !player.IsAlive())
 			return false;
