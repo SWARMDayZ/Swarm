@@ -57,7 +57,10 @@ modded class MissionServer
 		
 		if (!shouldClientBeObserved(player))
 		{
-			Print("[SwarmObserver] Player " + (data ? data.PlayerName : "unknown") + " is not subject to observation, skipping");
+			if (data)
+				Print("[SwarmObserver] Player " + data.PlayerName + " is not subject to observation, skipping");
+			else
+				Print("[SwarmObserver] Player with uid " + uid + " is not subject to observation, skipping");
 			super.PlayerDisconnected(player, identity, uid);
 			return;
 		}
@@ -155,5 +158,7 @@ modded class MissionServer
 			default:
 				return true;
 		}
+
+		return true;
 	}
 }

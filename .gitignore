@@ -21,6 +21,7 @@ dist/
 .build_temp/
 .validate_temp/
 .launch_temp/
+.build_settings
 
 # IDE
 .vs/

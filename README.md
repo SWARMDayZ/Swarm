@@ -70,51 +70,60 @@ Server-side moderation and player activity tracking tool:
 
 ```
 Swarm/
-├── src/                          # Source code for all mods
-│   ├── meta.cpp                  # Mod metadata template
-│   ├── SwarmTweaks/              # Gameplay tweaks
-│   │   ├── config.cpp
-│   │   └── scripts/4_World/      # World module overrides
-│   ├── SwarmAnimals/             # Animal drops (modular structure)
-│   │   ├── config.cpp
-│   │   ├── canis_lupus/config.cpp
-│   │   ├── capra_hircus/config.cpp
-│   │   ├── ovis_aries/config.cpp
-│   │   └── ...
-│   ├── SwarmEarplugs/            # Volume control
-│   │   ├── config.cpp
-│   │   ├── data/inputs.xml
-│   │   └── scripts/5_Mission/
-│   ├── SwarmSpectator/           # Enhanced spectator
-│   │   ├── config.cpp
-│   │   ├── data/inputs.xml
-│   │   └── scripts/3_Game, 4_World, 5_Mission/
-│   └── SwarmObserver/            # Moderation tools
-│       ├── config.cpp
-│       └── scripts/3_Game, 4_World, 5_Mission/
-├── dist/@Swarm/                  # Build output (gitignored)
-│   ├── Addons/                   # Compiled PBO files
-│   ├── Keys/                     # Public signing key (.bikey)
-│   ├── meta.cpp                  # Processed metadata
-│   └── mod.cpp                   # Workshop metadata
+├── packages/                     # Source packages (each folder = one mod)
+│   ├── Swarm/                    # Main Swarm mod
+│   │   ├── meta.cpp              # Mod metadata template
+│   │   ├── .version              # Package-specific version (optional)
+│   │   ├── .workshop_id          # Package-specific Workshop ID (optional)
+│   │   ├── SwarmTweaks/          # PBO: Gameplay tweaks
+│   │   ├── SwarmAnimals/         # PBO: Animal drops
+│   │   ├── SwarmEarplugs/        # PBO: Volume control
+│   │   ├── SwarmSpectator/       # PBO: Enhanced spectator
+│   │   └── SwarmObserver/        # PBO: Moderation tools
+│   ├── SwarmArena/               # Arena mod (separate package)
+│   └── SwarmTest/                # Test mod (separate package)
+│       ├── meta.cpp
+│       └── Core/
+├── dist/                         # Build output (gitignored)
+│   ├── @Swarm/                   # Built Swarm mod
+│   │   ├── Addons/               # Compiled PBO files
+│   │   ├── Keys/                 # Public signing key (.bikey)
+│   │   └── meta.cpp              # Processed metadata
+│   ├── @SwarmArena/              # Built SwarmArena mod
+│   └── @SwarmTest/               # Built SwarmTest mod
 ├── keys/                         # Signing keys directory
 │   ├── Swarm.bikey               # Public key (committed)
 │   └── Swarm.biprivatekey        # Private key (gitignored)
 ├── scripts/                      # Build tools and utilities
 │   ├── load_env.ps1              # PowerShell .env parser
 │   ├── update_version.ps1        # Version preprocessor
+│   ├── build_prompt.ps1          # Interactive build menu
+│   ├── publish_prompt.ps1        # Interactive publish menu
 │   └── steamcmd.exe              # SteamCMD for Workshop publishing
 ├── validate/                     # Script validation environment
 │   ├── mods/                     # Dependency mods (CF, COT, etc.)
-│   │   ├── @CF/
-│   │   └── @Community-Online-Tools/
 │   ├── serverDZ.cfg              # Custom server config (gitignored)
 │   └── serverDZ.default.cfg      # Default validation config
-├── build.bat                     # Build all mods
-├── validate.bat                  # Script validation
-├── publish.bat                   # Full publish workflow
-├── launch.bat                    # Local dev environment launcher
+├── build.bat                     # Interactive build/validate/sign/launch
+├── publish.bat                   # Interactive publish workflow
+├── .build_settings               # Persisted build selections (gitignored)
+├── .version                      # Root version fallback
 └── .env                          # Environment configuration (gitignored)
+```
+
+### Package Structure
+
+Each folder inside `packages/` represents a **mod**. Each subfolder inside a mod becomes a **PBO**:
+
+```
+packages/
+├── Swarm/                  → builds to dist/@Swarm/
+│   ├── meta.cpp            → processed and copied to dist/@Swarm/meta.cpp
+│   ├── SwarmTweaks/        → builds to dist/@Swarm/Addons/SwarmTweaks.pbo
+│   ├── SwarmAnimals/       → builds to dist/@Swarm/Addons/SwarmAnimals.pbo
+│   └── ...
+├── SwarmArena/             → builds to dist/@SwarmArena/
+└── SwarmTest/              → builds to dist/@SwarmTest/
 ```
 
 ## 🔧 Prerequisites
@@ -124,9 +133,9 @@ Swarm/
 - **Windows** - Build scripts are Windows batch files (PowerShell 5.1+)
 
 ### Optional
-- **DayZ Server** - Required for `validate.bat` and `launch.bat`
-- **DayZ Client** - Required for `launch.bat` only
-- **SteamCMD** - Required for automated `publish.bat` workflow
+- **DayZ Server** - Required for validation and launch (via `build.bat`)
+- **DayZ Client** - Required for launch (via `build.bat`)
+- **SteamCMD** - Required for `publish.bat` workflow
 
 ### Dependency Mods (for validation/testing)
 If your mods depend on other mods, place them in `validate/mods/`:
@@ -153,7 +162,7 @@ DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
 DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
 
 # ============================================
-# DayZ Client (REQUIRED for launch.bat only)
+# DayZ Client (REQUIRED for launch via build.bat)
 # ============================================
 DAYZ_CLIENT=G:\SteamLibrary\steamapps\common\DayZ
 
@@ -172,7 +181,7 @@ WORKSHOP_ID=1234567890
 # Dependency mods to load (semicolon-separated)
 MODS=@CF;@Community-Online-Tools
 
-# Client profile directory (optional, for launch.bat)
+# Client profile directory (optional, for launch via build.bat)
 DAYZ_PROFILE=C:\Users\YourName\Documents\DayZ
 ```
 
@@ -202,462 +211,263 @@ setx DAYZ_CLIENT "G:\SteamLibrary\steamapps\common\DayZ"
 
 ## 🔨 Build Workflow (build.bat)
 
-Compiles all source packages into PBO files using DayZ Tools AddonBuilder.
+Interactive build system with package selection, validation, signing, and launch - all in one script. Replaces the old `build.bat`, `validate.bat`, and `launch.bat`.
+
+### Interactive Prompts
+
+When you run `build.bat`, you get an interactive menu:
+
+**Step 1: Reuse Settings** (if previous settings exist)
+```
+Do you want to build with latest settings?
+
+  Packages: Swarm, SwarmTest
+  Params:   validate, sign, launch
+
+(y/n) >
+```
+
+**Step 2: Package Selection**
+```
+What mod do you want to build?
+
+(*) packages/Swarm          <
+( ) packages/SwarmArena
+( ) packages/SwarmTest
+
+(use space to toggle, enter to validate)
+```
+
+**Step 3: Action Selection**
+```
+What should we do with the build?
+
+(*) validate using server validation  <
+(*) sign the pbos in the mods
+(*) launch testing server & client
+
+(use space to toggle, enter to validate)
+```
 
 ### How It Works
 
-1. **Environment Loading** - Loads `DAYZ_TOOLS` from `.env` or environment variables
-2. **Version Management** - Uses `--version` flag or reads from `.version` file
-3. **Preprocessing** - Runs `update_version.ps1` to replace `%VERSION%` placeholders in all source files
-4. **Compilation** - Invokes AddonBuilder for each folder in `src/` directory
-5. **Metadata Processing** - Copies and processes `meta.cpp` with version, timestamp, and Workshop ID
-6. **Optional Signing** - Signs PBOs with private key if `--sign` flag is specified
-7. **Optional Validation** - Runs `validate.bat` if `--validate` flag is specified
+1. **Environment Loading** - Loads `DAYZ_TOOLS`, `DAYZ_SERVER`, `DAYZ_CLIENT`, `MODS`, `DAYZ_PROFILE` from `.env`
+2. **Package Discovery** - Scans `packages/` for mod folders
+3. **Settings Persistence** - Saves/loads selections to `.build_settings` for quick reuse
+4. **Interactive Selection** - PowerShell-based multi-select menus (arrow keys + space + enter)
+5. **Build** - For each selected package, builds every subfolder into a PBO using AddonBuilder
+6. **Version Injection** - Runs `update_version.ps1` to replace `%VERSION%` placeholders
+7. **Metadata Processing** - Processes `meta.cpp` with version, timestamp, and Workshop ID
+8. **Sign** *(optional)* - Signs all PBOs with private key, copies public key to mod's `Keys/` folder
+9. **Validate** *(optional)* - Launches DayZ Server with built mods, checks RPT logs for script errors
+10. **Launch** *(optional)* - Starts DayZ Server + Client with auto-connect for testing
 
 ### Usage
 
 ```batch
-# Basic build with version number
-build.bat --version 1.2.3
-
-# Build with signing
-build.bat --version 1.2.3 --sign
-
-# Build with validation (requires DayZ Server)
-build.bat --version 1.2.3 --validate
-
-# Build with custom validation timeout
-build.bat --version 1.2.3 --validate --timeout 30
-
-# Build without specifying version (uses .version file)
+# Run with interactive prompts
 build.bat
 ```
 
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--version X.X.X` | Version number for this build (updates `.version` file) |
-| `--sign` | Sign all PBO files with private key after building |
-| `--validate` | Run script validation after successful build |
-| `--timeout N` | Validation timeout in seconds (default: 15) |
+No command-line flags needed - everything is selected interactively.
 
 ### Output
 
+Each selected package builds to its own `dist/@PackageName/` directory:
 - PBO files: `dist/@Swarm/Addons/*.pbo`
-- Meta file: `dist/@Swarm/meta.cpp` (processed with version/timestamp/Workshop ID)
-- Version file: `.version` (stores last used version)
+- Signatures: `dist/@Swarm/Addons/*.bisign`
+- Public key: `dist/@Swarm/Keys/Swarm.bikey`
+- Metadata: `dist/@Swarm/meta.cpp`
 
-### Build Process Details
+### Version Management
 
-1. **Folder Discovery** - Scans `src/` for subdirectories (each becomes a PBO)
-2. **Version Injection** - PowerShell preprocessor finds all `%VERSION%` placeholders and replaces them
-3. **AddonBuilder Execution** - Each folder is compiled with `-clear -packonly` flags
-4. **Meta.cpp Processing** - Replaces `%VERSION%`, `%TIMESTAMP%`, and `%PUBLISHEDID%` in meta.cpp
-5. **Timestamp Format** - Uses .NET DateTime.UtcNow.Ticks format for Workshop compatibility
+Versions are read per-package:
+1. `packages/Swarm/.version` - Package-specific version (takes priority)
+2. `.version` - Root fallback version
 
-## ✅ Validation Workflow (validate.bat)
+### Settings Persistence
 
-Tests compiled scripts by launching a DayZ Server instance and checking logs for errors.
+Your last selections are saved to `.build_settings` and offered for quick reuse on the next run. Press `y` to rebuild with the same packages and actions instantly.
 
-### How It Works
+## 📤 Publish Workflow (publish.bat)
 
-1. **Environment Loading** - Loads `DAYZ_SERVER` and `MODS` from `.env`
-2. **Build Verification** - Checks if `dist/@Swarm/Addons` exists
-3. **Config Selection** - Uses `validate/serverDZ.cfg` (custom) or `validate/serverDZ.default.cfg` (default Chernarus)
-4. **Mod List Building** - Loads dependency mods from `validate/mods/` or `MODS` env variable, then adds `@Swarm` last
-5. **Server Launch** - Starts DayZServer_x64.exe in background with all mods loaded
-6. **Timeout Wait** - Waits specified seconds for server to load and initialize scripts
-7. **Log Analysis** - Scans RPT and crash logs for script errors, compile errors, and fatal errors
-8. **Process Termination** - Kills server process and analyzes final logs
-9. **Error Reporting** - Displays crash logs, script logs, and error lines from RPT files if errors found
+Interactive pipeline for building, validating, signing, and publishing mods to Steam Workshop.
+
+### Interactive Prompts
+
+**Step 1: Package Selection**
+```
+What mod do you want to publish?
+
+(*) packages/Swarm          <
+( ) packages/SwarmArena
+( ) packages/SwarmTest
+
+(use space to toggle, enter to validate)
+```
+
+**Step 2: Version Input** (per selected package)
+```
+What version for packages/Swarm ?
+version [1.5.0]: 1.5.1
+
+What version for packages/SwarmTest ?
+version [1.0.0]:
+```
+
+Press Enter to keep the current version, or type a new one.
+
+### Pipeline (per package)
+
+For each selected package, the publish script runs a 5-step pipeline:
+
+| Step | Action | Details |
+|------|--------|---------|
+| 1/5 | **Update version** | Saves new version to `packages/ModName/.version` |
+| 2/5 | **Build** | Compiles all subfolders into PBOs, processes `meta.cpp` |
+| 3/5 | **Validate** | Launches DayZ Server, checks logs for script errors |
+| 4/5 | **Sign** | Signs all PBOs with private key, copies public key |
+| 5/5 | **Publish** | Uploads to Steam Workshop via SteamCMD |
+
+If validation fails, the pipeline stops - no broken mods get published.
 
 ### Usage
 
 ```batch
-# Run validation with default timeout (15 seconds)
-validate.bat
-
-# Run validation with longer timeout
-validate.bat --timeout 30
-
-# Skip build check (assume mods are already built)
-validate.bat --skip-build
-
-# Show help
-validate.bat --help
+# Run with interactive prompts
+publish.bat
 ```
 
-### Command-Line Options
+### Workshop ID
 
-| Option | Description |
-|--------|-------------|
-| `--timeout N` | Server run duration in seconds (default: 15) |
-| `--skip-build` | Skip checking if mod is built |
-| `--help` | Display detailed help information |
+Each package can have its own Workshop ID:
+
+1. **Per-package** - Create `packages/Swarm/.workshop_id` containing the ID
+2. **Global fallback** - Set `WORKSHOP_ID=1234567890` in `.env`
+
+### Prerequisites for Publishing
+
+1. **SteamCMD** - Place `steamcmd.exe` in `scripts/`
+2. **Workshop Item** - Create manually in DayZ Tools Publisher first, note the ID
+3. **Steam Credentials** - Set `STEAM_USERNAME` in `.env`, run SteamCMD once to cache login
+
+### SteamCMD Authentication
+
+#### Initial Login
+```batch
+cd scripts
+steamcmd.exe +login your_steam_username +quit
+```
+
+This caches your credentials in `scripts/config/loginusers.vdf`.
+
+#### Steam Guard
+- If Steam Guard is enabled, you'll be prompted for a code during first login
+- The code is sent to your email or mobile app
+- After successful authentication, credentials are cached
+- Future `publish.bat` runs will use cached credentials automatically
+
+### Signing Keys
+
+On first publish, the script automatically creates a key pair:
+- **Private Key:** `keys/Swarm.biprivatekey` - Keep this SECRET (gitignored)
+- **Public Key:** `keys/Swarm.bikey` - Share with server owners (committed to repo)
+
+The public key is automatically copied to each package's `dist/@PackageName/Keys/` for Workshop distribution.
+
+## 🚀 Launch & Validate
+
+Launch and validation are now integrated directly into `build.bat` as selectable actions - no standalone scripts needed.
+
+When you select **launch** in the action menu, `build.bat`:
+1. Kills any existing DayZ processes
+2. Sets up `validate/serverDZ.cfg` or `validate/serverDZ.default.cfg`
+3. Creates `.launch_temp/` for server/client profiles
+4. Enables BattleEye automatically
+5. Copies your profiles from `DAYZ_PROFILE` (if set)
+6. Loads dependency mods from `validate/mods/` or `MODS` env variable
+7. If COT is detected, creates full admin permissions for "everyone" role
+8. Starts DayZ Server, waits, then starts DayZ Client with auto-connect to `127.0.0.1`
+
+When you select **validate**, the script:
+1. Launches DayZ Server with all built mods loaded
+2. Waits for scripts to initialize
+3. Scans RPT and crash logs for script errors, compile errors, and fatal errors
+4. Reports results and preserves logs in `.validate_temp/`
 
 ### Server Configuration
 
-The script looks for configs in this order:
-
-1. `validate/serverDZ.cfg` - Custom config (your specific map, mods, settings)
-2. `validate/serverDZ.default.cfg` - Default config (vanilla Chernarus offline)
-
-To validate on a different map, copy `serverDZ.default.cfg` to `serverDZ.cfg` and modify the `Missions` class:
+Create `validate/serverDZ.cfg` for a custom map:
 
 ```cpp
+hostname = "Dev Test Server";
 Missions = {
-    class MyCustomMap {
-        template = "dayzOffline.enoch";  // or .namalsk, .takistanplus, etc.
+    class Namalsk {
+        template = "dayzOffline.namalsk";
     };
 };
 ```
 
+If no custom config exists, `validate/serverDZ.default.cfg` (vanilla Chernarus) is used.
+
 ### Dependency Mods
 
-Place dependency mods in `validate/mods/`:
-
-```
-validate/mods/@CF/
-validate/mods/@Community-Online-Tools/
-validate/mods/@DeerIsle/
-```
-
-Or specify in `.env`:
+Place dependency mods in `validate/mods/` or set in `.env`:
 
 ```ini
 MODS=@CF;@Community-Online-Tools;@DeerIsle
 ```
 
-The script automatically loads dependencies BEFORE `@Swarm` to ensure proper load order.
+Dependencies are loaded before your packages to ensure proper load order.
 
-### Error Detection
+### Logs
 
-The validation script detects:
-
-- **Crash Logs** - `crash_*.log` files
-- **Crash Dumps** - `*.mdmp` minidump files
-- **Script Errors** - RPT entries containing "SCRIPT ERROR", "SCRIPT (E)", "Compile error"
-- **Fatal Errors** - "Fatal error", "ErrorModule", "Cannot compile"
-
-If errors are found, logs are preserved at `.validate_temp/` for inspection.
-
-### Exit Codes
-
-- `0` - Validation passed, no errors detected
-- `1` - Validation failed, script errors or crashes detected
-
-## 📤 Publish Workflow (publish.bat)
-
-Complete pipeline for building, validating, signing, and publishing to Steam Workshop.
-
-### How It Works
-
-This is a **4-step automated pipeline**:
-
-#### Step 1: Build
-- Runs `build.bat --version X.X.X` to compile all mods
-- Preprocesses version placeholders
-- Generates PBO files in `dist/@Swarm/Addons/`
-- Skip with `--skip-build` if already built
-
-#### Step 2: Validate
-- Runs `validate.bat --skip-build` to check for script errors
-- Launches DayZ Server with all mods loaded
-- Analyzes RPT logs for compile errors
-- Skip with `--skip-validate` (not recommended)
-
-#### Step 3: Sign
-- Creates signing keys if they don't exist (using DSCreateKey.exe)
-- Signs all PBO files with private key (using DSSignFile.exe)
-- Generates `.bisign` signature files
-- Copies public `.bikey` to `dist/@Swarm/Keys/`
-- Skip with `--skip-sign`
-
-#### Step 4: Publish
-- Creates `mod.cpp` with version and metadata
-- Generates Workshop VDF configuration file
-- Logs into Steam via SteamCMD
-- Uploads mod files to Workshop item
-- Skip with `--skip-publish` (useful for build+sign only)
-
-### Prerequisites for Publishing
-
-Before first publish, you MUST:
-
-1. **Install SteamCMD**
-   - Download from: https://developer.valvesoftware.com/wiki/SteamCMD
-   - Extract `steamcmd.exe` to `scripts/steamcmd.exe`
-
-2. **Initialize SteamCMD and Cache Credentials**
-   ```batch
-   cd scripts
-   steamcmd.exe +login your_steam_username +quit
-   ```
-   - Enter your password
-   - Enter Steam Guard code if prompted
-   - Credentials are cached for future automated runs
-   - **Important:** You only need to do this once, or when changing passwords
-
-3. **Create Workshop Item Manually**
-   - Open DayZ Tools → Publisher
-   - Click "New" and fill in mod details
-   - Upload initial version manually
-   - Note the **Workshop ID** from the URL (e.g., `https://steamcommunity.com/sharedfiles/filedetails/?id=1234567890`)
-   - Add `WORKSHOP_ID=1234567890` to your `.env` file
-
-4. **Configure .env File**
-   ```ini
-   DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
-   DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
-   STEAM_USERNAME=your_steam_username
-   WORKSHOP_ID=1234567890
-   ```
-
-### Usage
-
-```batch
-# Full publish pipeline (build → validate → sign → publish)
-publish.bat --version 1.2.3
-
-# Publish with changelog
-publish.bat --version 1.2.3 --changelog "Fixed bug with fishing rod shouldering"
-
-# Publish with custom signing key
-publish.bat --version 1.2.3 --key MyCustomKey
-
-# Dry run (show what would happen without doing it)
-publish.bat --version 1.2.3 --dry-run
-
-# Skip validation (faster, but risky)
-publish.bat --version 1.2.3 --skip-validate
-
-# Build and sign only, don't publish
-publish.bat --version 1.2.3 --skip-publish
-
-# Use existing build, just sign and publish
-publish.bat --version 1.2.3 --skip-build
-```
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--version X.X.X` | **Required** - Version number to build and publish |
-| `--key KeyName` | Key name for signing (default: "Swarm") |
-| `--changelog "text"` | Change note displayed on Workshop (default: "Version X.X.X") |
-| `--workshop-id ID` | Override Workshop ID from .env |
-| `--skip-build` | Skip build step (use existing PBOs) |
-| `--skip-validate` | Skip script validation (not recommended) |
-| `--skip-sign` | Skip signing step |
-| `--skip-publish` | Build and sign only, don't upload to Workshop |
-| `--dry-run` | Show what would be done without executing |
-
-### Signing Keys
-
-#### First-Time Setup
-On first run, `publish.bat` automatically creates a key pair:
-- **Private Key:** `keys/Swarm.biprivatekey` - Keep this SECRET (gitignored)
-- **Public Key:** `keys/Swarm.bikey` - Share with server owners (committed to repo)
-
-#### Key Management
-- **Never share your `.biprivatekey` file** - It's used to prove authenticity
-- **Always share your `.bikey` file** - Server owners need this to verify your mods
-- The public key is automatically copied to `dist/@Swarm/Keys/` for Workshop distribution
-- Custom key names: Use `--key CustomName` to create/use different key pairs
-
-### SteamCMD Authentication
-
-#### Initial Login
-```batch
-cd scripts
-steamcmd.exe +login your_steam_username +quit
-```
-
-This caches your credentials in `scripts/config/loginusers.vdf`.
-
-#### Steam Guard
-- If Steam Guard is enabled, you'll be prompted for a code during first login
-- The code is sent to your email or mobile app
-- After successful authentication, credentials are cached
-- Future `publish.bat` runs will use cached credentials automatically
-
-#### Troubleshooting
-- **Wrong password?** - Run the manual login command again to update cached credentials
-- **Steam Guard timeout?** - Re-run the login command and enter code faster
-- **Two-Factor Required?** - Use the Steam Mobile Authenticator app for instant codes
-
-### Exit Codes
-
-- `0` - Published successfully
-- `Non-zero` - Error occurred (build failed, validation failed, signing failed, or upload failed)
-
-### Output
-
-After successful publish:
-- **Workshop URL** - `https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_ID`
-- **Signed PBOs** - `dist/@Swarm/Addons/*.pbo` and `*.bisign`
-- **Public Key** - `dist/@Swarm/Keys/Swarm.bikey`
-- **Mod Metadata** - `dist/@Swarm/mod.cpp` and `meta.cpp`
-
-## 🚀 Launch Workflow (launch.bat)
-
-Launches local DayZ Server and Client for development testing with automatic configuration.
-
-### How It Works
-
-1. **Environment Loading** - Loads paths from `.env` (DAYZ_SERVER, DAYZ_CLIENT, DAYZ_TOOLS, MODS, DAYZ_PROFILE)
-2. **Process Cleanup** - Kills existing DayZ processes to free up files and ports
-3. **Optional Build** - Runs `build.bat` and signs PBOs if `--build` flag specified
-4. **Config Selection** - Uses `validate/serverDZ.cfg` or `validate/serverDZ.default.cfg`
-5. **Temp Directory Setup** - Creates `.launch_temp/` for server profiles and client profiles
-6. **BattleEye Configuration** - Automatically enables BattleEye in server config for stability
-7. **Profile Copying** - Copies existing DayZ profiles from `DAYZ_PROFILE` to temp client directory (preserves settings)
-8. **Mod List Building** - Loads dependencies from `validate/mods/` or `MODS` env variable, adds `@Swarm` last
-9. **COT Permission Setup** - If Community Online Tools is detected, creates full admin permissions for "everyone" role
-10. **Server Launch** - Starts DayZServer_x64.exe in new window with full logging
-11. **Client Launch** - After 10-second wait, starts DayZ_BE.exe with auto-connect to local server
-
-### Usage
-
-```batch
-# Launch server and client (default port 2302)
-launch.bat
-
-# Launch with custom port
-launch.bat --port 2303
-
-# Build, sign, and launch
-launch.bat --build
-
-# Build with custom port
-launch.bat --build --port 2303
-
-# Show help
-launch.bat --help
-```
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--port N` | Server port (default: 2302) |
-| `--build` | Build and sign mod before launching |
-| `--help` | Display help information |
-
-### Server Configuration
-
-Same as `validate.bat` - uses `validate/serverDZ.cfg` or `validate/serverDZ.default.cfg`.
-
-### Automatic Features
-
-#### BattleEye Auto-Enable
-The script automatically adds `BattlEye = 1;` to the server config for proper client connection.
-
-#### COT Admin Auto-Setup
-If Community Online Tools is detected in the mod list, the script creates:
-- `PermissionsFramework/Roles/everyone.txt` with full admin permissions
-- All COT permissions granted to "everyone" role (no need to manually set up admins)
-- Includes camera, ESP, teleport, weather, vehicle, loadout, and Namalsk event controls
-
-#### Profile Preservation
-If `DAYZ_PROFILE` is set, the script copies your existing:
-- Client settings (`*.DayZProfile`)
-- Graphics settings (`*.cfg`)
-- Input settings (`*.xml`)
-
-### Logs and Profiles
-
-Everything is stored in `.launch_temp/`:
-- **Server Logs** - `.launch_temp/*.RPT`, `.launch_temp/*.ADM`, `.launch_temp/*.log`
+- **Server Logs** - `.launch_temp/*.RPT`, `.launch_temp/*.ADM`
 - **Client Logs** - `.launch_temp/client/Users/DevClient/*.RPT`
-- **Server Profiles** - `.launch_temp/PermissionsFramework/`, etc.
-
-### Auto-Connect
-
-Client automatically connects to `127.0.0.1:PORT` using `-connect` and `-port` parameters.
-
-### Stopping
-
-- Close the server and client windows manually
-- Or use Task Manager to kill `DayZServer_x64.exe` and `DayZ_x64.exe`
-- Or run `launch.bat` again (it kills existing processes first)
+- **Validation Logs** - `.validate_temp/*.RPT`, `.validate_temp/crash_*.log`
 
 ## 🛠️ Development Tips
 
 ### Quick Development Cycle
 
 ```batch
-# 1. Build with validation
-build.bat --version 1.0.0 --validate
-
-# 2. Launch for testing
-launch.bat
-
-# 3. Make changes to src/ files
-
-# 4. Quick rebuild and relaunch
-launch.bat --build
-```
-
-### Testing Without Validation
-
-```batch
-# Faster builds (skips validation)
-build.bat --version 1.0.0
-
-# Launch directly
-launch.bat
-```
-
-### Version Management
-
-The `.version` file stores the last used version:
-```batch
-# First build creates .version file
-build.bat --version 1.0.0
-
-# Subsequent builds can omit version
+# 1. Build with validation and launch
 build.bat
+#    → select your packages
+#    → select: validate, sign, launch
 
-# Update version explicitly
-build.bat --version 1.1.0
+# 2. Make changes to packages/ files
+
+# 3. Re-run build.bat → press 'y' to reuse settings
+build.bat
 ```
+
+### Build Only (No Launch)
+
+```batch
+# Build and sign only (no server launch)
+build.bat
+#    → select packages
+#    → select: validate, sign
+```
+
+**Note:** Launching requires both **sign** and **validate** - unsigned PBOs won't load, and validation ensures scripts compile before starting the server.
 
 ### Debugging Script Errors
 
 If validation fails:
 
-1. **Check preserved logs** - `.validate_temp/` directory contains:
-   - `*.RPT` - Full server logs
-   - `crash_*.log` - Crash details
-   - `script_*.log` - Script-specific logs
+1. **Check preserved logs** - `.validate_temp/` contains RPT, crash, and script logs
+2. **Check launch logs** - `.launch_temp/` contains full server and client logs
+3. **Increase timeout** - Edit the validation timeout in `build.bat` if scripts need more time to load
 
-2. **Run with longer timeout** - Give server more time to load:
-   ```batch
-   validate.bat --timeout 60
-   ```
+### Version Management
 
-3. **Test manually** - Launch server yourself:
-   ```batch
-   launch.bat
-   # Check logs in .launch_temp/
-   ```
+Versions are managed per-package:
+- `packages/Swarm/.version` - Package-specific version
+- `.version` - Root fallback
 
-### Testing Different Maps
-
-Create `validate/serverDZ.cfg` with your custom map:
-
-```cpp
-hostname = "Dev Test Server";
-Missions = {
-    class Namalsk {
-        template = "dayzOffline.namalsk";
-    };
-};
-```
-
-Then run validation or launch as normal.
+The publish workflow prompts you to set versions interactively. Build workflow reads existing versions for metadata injection.
 
 ## 📝 Scripting Details
 
@@ -681,8 +491,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\load_env.ps1" -EnvF
 Copies source files to temporary directory and replaces `%VERSION%` placeholders:
 
 ```powershell
-# Usage from build.bat
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_version.ps1" -SourceDir "src\SwarmTweaks" -TempDir ".build_temp\SwarmTweaks" -Version "1.2.3"
+# Usage from bat files
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_version.ps1" -SourceDir "packages\Swarm\SwarmTweaks" -TempDir ".build_temp\SwarmTweaks" -Version "1.2.3"
 ```
 
 **Replacements:**
@@ -691,72 +501,39 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_version.ps1"
 
 ### Meta.cpp Placeholders
 
-The `src/meta.cpp` file uses these placeholders:
+Each package's `meta.cpp` uses these placeholders:
 
 ```cpp
-version = "%VERSION%";         // Replaced with --version value
+version = "%VERSION%";         // Replaced with package version
 timeStamp = %TIMESTAMP%;       // Replaced with DateTime.UtcNow.Ticks
-publishedid = %PUBLISHEDID%;   // Replaced with WORKSHOP_ID env variable
+publishedid = %PUBLISHEDID%;   // Replaced with WORKSHOP_ID
 ```
 
 **Processing:**
-- `build.bat` replaces all placeholders when copying to `dist/@Swarm/meta.cpp`
+- `build.bat` replaces all placeholders when copying to `dist/@PackageName/meta.cpp`
 - Timestamp format is .NET ticks for Steam Workshop compatibility
-- Published ID defaults to `0` if `WORKSHOP_ID` not set
-
-## 🔐 Security Best Practices
-
-### Private Key Protection
-
-**Critical:** Never share or commit your `.biprivatekey` file!
-
-```gitignore
-# .gitignore already includes
-keys/*.biprivatekey
-```
-
-If your private key is compromised:
-1. Generate a new key pair: `publish.bat --version X.X.X --key NewKeyName`
-2. Re-sign all PBOs with the new key
-3. Distribute the new `.bikey` to server owners
-4. Update your Workshop item with newly signed PBOs
-
-### .env File Security
-
-The `.env` file is gitignored but contains sensitive paths:
-
-```gitignore
-# .gitignore already includes
-.env
-```
-
-**Never commit:**
-- Steam usernames
-- Workshop IDs (if you want to keep them private)
-- Local file paths (they're specific to your machine)
+- Published ID defaults to `0` if no Workshop ID is configured
 
 ## 🤝 Contributing
 
-### Adding New Mods
+### Adding a New Mod (Package)
 
-1. Create new folder in `src/` (e.g., `src/SwarmNewMod/`)
-2. Add `config.cpp` with comments explaining features
-3. Add scripts in appropriate module folders (3_Game, 4_World, 5_Mission)
-4. Build and test:
+1. Create a new folder in `packages/` (e.g., `packages/SwarmNewMod/`)
+2. Add subfolders for each PBO (e.g., `packages/SwarmNewMod/MyFeature/`)
+3. Add `config.cpp` with mod configuration in each subfolder
+4. Add scripts in appropriate module folders (`3_Game/`, `4_World/`, `5_Mission/`)
+5. Add `meta.cpp` at the package root with `%VERSION%`, `%TIMESTAMP%`, `%PUBLISHEDID%` placeholders
+6. Build and test:
    ```batch
-   build.bat --version 1.0.0 --validate
-   launch.bat
+   build.bat
+   # Select your new package → validate + launch
    ```
 
-### Modifying Animal Drops
+### Adding a New PBO to an Existing Mod
 
-Each animal has its own `config.cpp` in `src/SwarmAnimals/`:
-- `canis_lupus/config.cpp` - Wolf
-- `capra_hircus/config.cpp` - Goat (male)
-- `capra_hircus_fem/config.cpp` - Goat (female)
-- etc.
-
-Edit the appropriate file and rebuild.
+1. Create a subfolder in the package (e.g., `packages/Swarm/SwarmNewFeature/`)
+2. Add `config.cpp` and script files
+3. Rebuild - the new folder is automatically discovered and compiled as a PBO
 
 ### Testing Changes
 
@@ -764,404 +541,11 @@ Always validate before publishing:
 
 ```batch
 # Build with validation
-build.bat --version X.X.X --validate
-
-# Or use the full publish pipeline
-publish.bat --version X.X.X --dry-run
-```
-
-## 📄 License
-
-See individual mod directories for licensing information. SwarmEarplugs is a repack of the original EarPlugs mod by DaemonF0rge.
-
-## 🙏 Credits
-
-- **SwarmEarplugs** - Original [EarPlugs mod by DaemonF0rge](https://github.com/DaemonForge/DayZ-EarPlugs/)
-- **SwarmSpectator** - Extends [Community Online Tools by Jacob-Mango](https://github.com/Jacob-Mango/DayZ-Community-Online-Tools)
-- **Swarm Team** - Kize and contributors
-
-## 📞 Support
-
-For issues, questions, or suggestions:
-- Check the logs in `.validate_temp/` or `.launch_temp/` for errors
-- Review this README for workflow details
-- Check each mod's `config.cpp` for feature documentation
-
----
-
-**Last Updated:** February 2026  
-**Current Version:** See `.version` file  
-**Workshop:** Check your `WORKSHOP_ID` in `.env`
-
-3. **Create Workshop Item Manually**
-   - Open DayZ Tools → Publisher
-   - Click "New" and fill in mod details
-   - Upload initial version manually
-   - Note the **Workshop ID** from the URL (e.g., `https://steamcommunity.com/sharedfiles/filedetails/?id=1234567890`)
-   - Add `WORKSHOP_ID=1234567890` to your `.env` file
-
-4. **Configure .env File**
-   ```ini
-   DAYZ_TOOLS=G:\SteamLibrary\steamapps\common\DayZ Tools
-   DAYZ_SERVER=G:\SteamLibrary\steamapps\common\DayZServer
-   STEAM_USERNAME=your_steam_username
-   WORKSHOP_ID=1234567890
-   ```
-
-### Usage
-
-```batch
-# Full publish pipeline (build → validate → sign → publish)
-publish.bat --version 1.2.3
-
-# Publish with changelog
-publish.bat --version 1.2.3 --changelog "Fixed bug with fishing rod shouldering"
-
-# Publish with custom signing key
-publish.bat --version 1.2.3 --key MyCustomKey
-
-# Dry run (show what would happen without doing it)
-publish.bat --version 1.2.3 --dry-run
-
-# Skip validation (faster, but risky)
-publish.bat --version 1.2.3 --skip-validate
-
-# Build and sign only, don't publish
-publish.bat --version 1.2.3 --skip-publish
-
-# Use existing build, just sign and publish
-publish.bat --version 1.2.3 --skip-build
-```
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--version X.X.X` | **Required** - Version number to build and publish |
-| `--key KeyName` | Key name for signing (default: "Swarm") |
-| `--changelog "text"` | Change note displayed on Workshop (default: "Version X.X.X") |
-| `--workshop-id ID` | Override Workshop ID from .env |
-| `--skip-build` | Skip build step (use existing PBOs) |
-| `--skip-validate` | Skip script validation (not recommended) |
-| `--skip-sign` | Skip signing step |
-| `--skip-publish` | Build and sign only, don't upload to Workshop |
-| `--dry-run` | Show what would be done without executing |
-
-### Signing Keys
-
-#### First-Time Setup
-On first run, `publish.bat` automatically creates a key pair:
-- **Private Key:** `keys/Swarm.biprivatekey` - Keep this SECRET (gitignored)
-- **Public Key:** `keys/Swarm.bikey` - Share with server owners (committed to repo)
-
-#### Key Management
-- **Never share your `.biprivatekey` file** - It's used to prove authenticity
-- **Always share your `.bikey` file** - Server owners need this to verify your mods
-- The public key is automatically copied to `dist/@Swarm/Keys/` for Workshop distribution
-- Custom key names: Use `--key CustomName` to create/use different key pairs
-
-### SteamCMD Authentication
-
-#### Initial Login
-```batch
-cd scripts
-steamcmd.exe +login your_steam_username +quit
-```
-
-This caches your credentials in `scripts/config/loginusers.vdf`.
-
-#### Steam Guard
-- If Steam Guard is enabled, you'll be prompted for a code during first login
-- The code is sent to your email or mobile app
-- After successful authentication, credentials are cached
-- Future `publish.bat` runs will use cached credentials automatically
-
-#### Troubleshooting
-- **Wrong password?** - Run the manual login command again to update cached credentials
-- **Steam Guard timeout?** - Re-run the login command and enter code faster
-- **Two-Factor Required?** - Use the Steam Mobile Authenticator app for instant codes
-
-### Exit Codes
-
-- `0` - Published successfully
-- `Non-zero` - Error occurred (build failed, validation failed, signing failed, or upload failed)
-
-### Output
-
-After successful publish:
-- **Workshop URL** - `https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_ID`
-- **Signed PBOs** - `dist/@Swarm/Addons/*.pbo` and `*.bisign`
-- **Public Key** - `dist/@Swarm/Keys/Swarm.bikey`
-- **Mod Metadata** - `dist/@Swarm/mod.cpp` and `meta.cpp`
-
-## 🚀 Launch Workflow (launch.bat)
-
-Launches local DayZ Server and Client for development testing with automatic configuration.
-
-### How It Works
-
-1. **Environment Loading** - Loads paths from `.env` (DAYZ_SERVER, DAYZ_CLIENT, DAYZ_TOOLS, MODS, DAYZ_PROFILE)
-2. **Process Cleanup** - Kills existing DayZ processes to free up files and ports
-3. **Optional Build** - Runs `build.bat` and signs PBOs if `--build` flag specified
-4. **Config Selection** - Uses `validate/serverDZ.cfg` or `validate/serverDZ.default.cfg`
-5. **Temp Directory Setup** - Creates `.launch_temp/` for server profiles and client profiles
-6. **BattleEye Configuration** - Automatically enables BattleEye in server config for stability
-7. **Profile Copying** - Copies existing DayZ profiles from `DAYZ_PROFILE` to temp client directory (preserves settings)
-8. **Mod List Building** - Loads dependencies from `validate/mods/` or `MODS` env variable, adds `@Swarm` last
-9. **COT Permission Setup** - If Community Online Tools is detected, creates full admin permissions for "everyone" role
-10. **Server Launch** - Starts DayZServer_x64.exe in new window with full logging
-11. **Client Launch** - After 10-second wait, starts DayZ_BE.exe with auto-connect to local server
-
-### Usage
-
-```batch
-# Launch server and client (default port 2302)
-launch.bat
-
-# Launch with custom port
-launch.bat --port 2303
-
-# Build, sign, and launch
-launch.bat --build
-
-# Build with custom port
-launch.bat --build --port 2303
-
-# Show help
-launch.bat --help
-```
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `--port N` | Server port (default: 2302) |
-| `--build` | Build and sign mod before launching |
-| `--help` | Display help information |
-
-### Server Configuration
-
-Same as `validate.bat` - uses `validate/serverDZ.cfg` or `validate/serverDZ.default.cfg`.
-
-### Automatic Features
-
-#### BattleEye Auto-Enable
-The script automatically adds `BattlEye = 1;` to the server config for proper client connection.
-
-#### COT Admin Auto-Setup
-If Community Online Tools is detected in the mod list, the script creates:
-- `PermissionsFramework/Roles/everyone.txt` with full admin permissions
-- All COT permissions granted to "everyone" role (no need to manually set up admins)
-- Includes camera, ESP, teleport, weather, vehicle, loadout, and Namalsk event controls
-
-#### Profile Preservation
-If `DAYZ_PROFILE` is set, the script copies your existing:
-- Client settings (`*.DayZProfile`)
-- Graphics settings (`*.cfg`)
-- Input settings (`*.xml`)
-
-### Logs and Profiles
-
-Everything is stored in `.launch_temp/`:
-- **Server Logs** - `.launch_temp/*.RPT`, `.launch_temp/*.ADM`, `.launch_temp/*.log`
-- **Client Logs** - `.launch_temp/client/Users/DevClient/*.RPT`
-- **Server Profiles** - `.launch_temp/PermissionsFramework/`, etc.
-
-### Auto-Connect
-
-Client automatically connects to `127.0.0.1:PORT` using `-connect` and `-port` parameters.
-
-### Stopping
-
-- Close the server and client windows manually
-- Or use Task Manager to kill `DayZServer_x64.exe` and `DayZ_x64.exe`
-- Or run `launch.bat` again (it kills existing processes first)
-
-## 🛠️ Development Tips
-
-### Quick Development Cycle
-
-```batch
-# 1. Build with validation
-build.bat --version 1.0.0 --validate
-
-# 2. Launch for testing
-launch.bat
-
-# 3. Make changes to src/ files
-
-# 4. Quick rebuild and relaunch
-launch.bat --build
-```
-
-### Testing Without Validation
-
-```batch
-# Faster builds (skips validation)
-build.bat --version 1.0.0
-
-# Launch directly
-launch.bat
-```
-
-### Version Management
-
-The `.version` file stores the last used version:
-```batch
-# First build creates .version file
-build.bat --version 1.0.0
-
-# Subsequent builds can omit version
 build.bat
+# Select packages → validate
 
-# Update version explicitly
-build.bat --version 1.1.0
-```
-
-### Debugging Script Errors
-
-If validation fails:
-
-1. **Check preserved logs** - `.validate_temp/` directory contains:
-   - `*.RPT` - Full server logs
-   - `crash_*.log` - Crash details
-   - `script_*.log` - Script-specific logs
-
-2. **Run with longer timeout** - Give server more time to load:
-   ```batch
-   validate.bat --timeout 60
-   ```
-
-3. **Test manually** - Launch server yourself:
-   ```batch
-   launch.bat
-   # Check logs in .launch_temp/
-   ```
-
-### Testing Different Maps
-
-Create `validate/serverDZ.cfg` with your custom map:
-
-```cpp
-hostname = "Dev Test Server";
-Missions = {
-    class Namalsk {
-        template = "dayzOffline.namalsk";
-    };
-};
-```
-
-Then run validation or launch as normal.
-
-## 📝 Scripting Details
-
-### Environment Variable Loading (load_env.ps1)
-
-PowerShell script that parses `.env` files:
-
-```powershell
-# Usage from batch files
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\load_env.ps1" -EnvFile ".env" -VarName DAYZ_TOOLS
-```
-
-**Features:**
-- Skips empty lines and comments (lines starting with `#`)
-- Removes surrounding quotes from values
-- Returns single variable value or all variables as `KEY=VALUE` lines
-- Silent failure (returns nothing if file or variable not found)
-
-### Version Preprocessing (update_version.ps1)
-
-Copies source files to temporary directory and replaces `%VERSION%` placeholders:
-
-```powershell
-# Usage from build.bat
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_version.ps1" -SourceDir "src\SwarmTweaks" -TempDir ".build_temp\SwarmTweaks" -Version "1.2.3"
-```
-
-**Replacements:**
-- `%VERSION%` → Actual version string (e.g., "1.2.3")
-- Used in `config.cpp` files for mod version display
-
-### Meta.cpp Placeholders
-
-The `src/meta.cpp` file uses these placeholders:
-
-```cpp
-version = "%VERSION%";         // Replaced with --version value
-timeStamp = %TIMESTAMP%;       // Replaced with DateTime.UtcNow.Ticks
-publishedid = %PUBLISHEDID%;   // Replaced with WORKSHOP_ID env variable
-```
-
-**Processing:**
-- `build.bat` replaces all placeholders when copying to `dist/@Swarm/meta.cpp`
-- Timestamp format is .NET ticks for Steam Workshop compatibility
-- Published ID defaults to `0` if `WORKSHOP_ID` not set
-
-## 🔐 Security Best Practices
-
-### Private Key Protection
-
-**Critical:** Never share or commit your `.biprivatekey` file!
-
-```gitignore
-# .gitignore already includes
-keys/*.biprivatekey
-```
-
-If your private key is compromised:
-1. Generate a new key pair: `publish.bat --version X.X.X --key NewKeyName`
-2. Re-sign all PBOs with the new key
-3. Distribute the new `.bikey` to server owners
-4. Update your Workshop item with newly signed PBOs
-
-### .env File Security
-
-The `.env` file is gitignored but contains sensitive paths:
-
-```gitignore
-# .gitignore already includes
-.env
-```
-
-**Never commit:**
-- Steam usernames
-- Workshop IDs (if you want to keep them private)
-- Local file paths (they're specific to your machine)
-
-## 🤝 Contributing
-
-### Adding New Mods
-
-1. Create new folder in `src/` (e.g., `src/SwarmNewMod/`)
-2. Add `config.cpp` with comments explaining features
-3. Add scripts in appropriate module folders (3_Game, 4_World, 5_Mission)
-4. Build and test:
-   ```batch
-   build.bat --version 1.0.0 --validate
-   launch.bat
-   ```
-
-### Modifying Animal Drops
-
-Each animal has its own `config.cpp` in `src/SwarmAnimals/`:
-- `canis_lupus/config.cpp` - Wolf
-- `capra_hircus/config.cpp` - Goat (male)
-- `capra_hircus_fem/config.cpp` - Goat (female)
-- etc.
-
-Edit the appropriate file and rebuild.
-
-### Testing Changes
-
-Always validate before publishing:
-
-```batch
-# Build with validation
-build.bat --version X.X.X --validate
-
-# Or use the full publish pipeline
-publish.bat --version X.X.X --dry-run
+# Or publish (includes validation in the pipeline)
+publish.bat
 ```
 
 ## 📄 License

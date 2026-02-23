@@ -6,606 +6,516 @@ echo Swarm Mod Publisher
 echo ========================================
 echo.
 
-REM Load environment variables from .env file using PowerShell
+REM ============================================================
+REM Load environment variables from .env
+REM ============================================================
+
 set "_envfile=%~dp0.env"
 set "_psscript=%~dp0scripts\load_env.ps1"
 set "_tmpenv=%TEMP%\_swarm_env.tmp"
+
 if exist "!_envfile!" if exist "!_psscript!" (
     for %%V in (DAYZ_TOOLS DAYZ_SERVER STEAM_USERNAME WORKSHOP_ID) do (
-        powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %%V > "!_tmpenv!" 2>nul
-        if exist "!_tmpenv!" (
-            set /p %%V=<"!_tmpenv!"
-            del "!_tmpenv!" >nul 2>&1
+        if not defined %%V (
+            powershell -NoProfile -ExecutionPolicy Bypass -File "!_psscript!" -EnvFile "!_envfile!" -VarName %%V > "!_tmpenv!" 2>nul
+            if exist "!_tmpenv!" (
+                set /p %%V=<"!_tmpenv!"
+                del "!_tmpenv!" >nul 2>&1
+            )
         )
     )
-)
-
-set "VERSION="
-set "MOD_DIR=%~dp0dist\@Swarm"
-set "KEYS_DIR=%~dp0keys"
-set "KEY_NAME=Swarm"
-set "CHANGELOG="
-set "SKIP_BUILD=0"
-set "SKIP_VALIDATE=0"
-set "SKIP_SIGN=0"
-set "SKIP_PUBLISH=0"
-set "DRY_RUN=0"
-
-REM Parse arguments
-:parse_args
-if "%~1"=="" goto :check_args
-if /i "%~1"=="--version" (
-    set "VERSION=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--key" (
-    set "KEY_NAME=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--changelog" (
-    set "CHANGELOG=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--workshop-id" (
-    set "WORKSHOP_ID=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--skip-build" (
-    set "SKIP_BUILD=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--skip-validate" (
-    set "SKIP_VALIDATE=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--skip-sign" (
-    set "SKIP_SIGN=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--skip-publish" (
-    set "SKIP_PUBLISH=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--dry-run" (
-    set "DRY_RUN=1"
-    shift
-    goto :parse_args
-)
-shift
-goto :parse_args
-
-:check_args
-REM Check if version is provided
-if "!VERSION!"=="" (
-    echo ERROR: Version is required!
-    echo.
-    echo Usage: publish.bat --version X.X.X [options]
-    echo.
-    echo Options:
-    echo   --version X.X.X       Version number to build and publish ^(required^)
-    echo   --key KeyName         Key name for signing ^(default: Swarm^)
-    echo   --changelog "text"    Change note for Steam Workshop
-    echo   --workshop-id ID      Steam Workshop ID ^(or set WORKSHOP_ID in .env^)
-    echo   --skip-build          Skip the build step ^(use existing PBOs^)
-    echo   --skip-validate       Skip script validate step
-    echo   --skip-sign           Skip the signing step
-    echo   --skip-publish        Build and sign only, don't publish to Workshop
-    echo   --dry-run             Show what would be done without executing
-    echo.
-    echo Environment Variables ^(set in .env file^):
-    echo   DAYZ_TOOLS            Path to DayZ Tools installation
-    echo   DAYZ_SERVER           Path to DayZ Server ^(for validate^)
-    echo   STEAM_USERNAME        Steam account username
-    echo   WORKSHOP_ID           Steam Workshop item ID
-    echo.
-    echo Note: steamcmd.exe must be in the scripts folder
-    echo.
-    echo This will:
-    echo   1. Build all packages with the specified version
-    echo   2. Validate scripts using DayZ Server
-    echo   3. Sign all PBO files with .bikey/.biprivatekey
-    echo   4. Upload to Steam Workshop using SteamCMD
-    echo.
-    echo Examples:
-    echo   publish.bat --version 1.0.0
-    echo   publish.bat --version 1.0.0 --changelog "Bug fixes and improvements"
-    echo   publish.bat --version 1.0.0 --skip-validate
-    echo   publish.bat --version 1.0.0 --dry-run
-    echo.
-    goto :eof
 )
 
 REM Check for DayZ Tools
 if not defined DAYZ_TOOLS (
     echo ERROR: DAYZ_TOOLS environment variable not set!
-    echo Please set it to your DayZ Tools installation path.
-    echo.
-    echo You can add this to your .env file:
-    echo   DAYZ_TOOLS=C:\Program Files ^(x86^)\Steam\steamapps\common\DayZ Tools
-    goto :eof
+    echo Please set it in your .env file.
+    goto :error
 )
 
-if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would use DayZ Tools: !DAYZ_TOOLS!
-) else (
-    echo Using DayZ Tools: !DAYZ_TOOLS!
-)
-echo.
-
-REM Set tool paths
+set "ADDON_BUILDER=!DAYZ_TOOLS!\Bin\AddonBuilder\AddonBuilder.exe"
 set "DS_SIGN_FILE=!DAYZ_TOOLS!\Bin\DsUtils\DSSignFile.exe"
 set "DS_CREATE_KEY=!DAYZ_TOOLS!\Bin\DsUtils\DSCreateKey.exe"
+set "PREPROCESS_SCRIPT=%~dp0scripts\update_version.ps1"
+set "TEMP_DIR=%~dp0.build_temp"
+set "KEYS_DIR=%~dp0keys"
+set "KEY_NAME=Swarm"
 
-REM Verify signing tools exist (only if we need them)
-if "!SKIP_SIGN!"=="0" (
-    if not exist "!DS_SIGN_FILE!" (
-        echo ERROR: DSSignFile.exe not found at: !DS_SIGN_FILE!
-        echo Please verify DayZ Tools is installed correctly.
-        goto :eof
-    )
+REM ============================================================
+REM Discover packages and their versions
+REM ============================================================
 
-    if not exist "!DS_CREATE_KEY!" (
-        echo ERROR: DSCreateKey.exe not found at: !DS_CREATE_KEY!
-        echo Please verify DayZ Tools is installed correctly.
-        goto :eof
-    )
-    echo Found signing tools.
-)
-echo.
+set PACKAGE_COUNT=0
+set "PACKAGE_LIST="
+set "VERSION_LIST="
 
-echo ========================================
-echo Step 1: Building mod with version !VERSION!
-echo ========================================
-echo.
+for /d %%D in ("%~dp0packages\*") do (
+    set /a PACKAGE_COUNT+=1
+    set "PKG_NAME=%%~nxD"
 
-if "!SKIP_BUILD!"=="1" (
-    echo Skipping build step ^(--skip-build specified^)
-    echo Using existing PBOs in: !MOD_DIR!\Addons
-    echo.
-) else (
-    if "!DRY_RUN!"=="1" (
-        echo [DRY RUN] Would execute: build.bat --version !VERSION!
-        echo.
+    REM Read version (package-specific or root)
+    set "PKG_VER="
+    if exist "%%D\.version" (
+        set /p PKG_VER=<"%%D\.version"
+    ) else if exist "%~dp0.version" (
+        set /p PKG_VER=<"%~dp0.version"
     ) else (
-        call "%~dp0build.bat" --version !VERSION!
+        set "PKG_VER=0.0.1"
+    )
 
-        if !ERRORLEVEL! NEQ 0 (
-            echo ERROR: Build failed!
-            goto :eof
-        )
+    if "!PACKAGE_LIST!"=="" (
+        set "PACKAGE_LIST=!PKG_NAME!"
+        set "VERSION_LIST=!PKG_VER!"
+    ) else (
+        set "PACKAGE_LIST=!PACKAGE_LIST!,!PKG_NAME!"
+        set "VERSION_LIST=!VERSION_LIST!,!PKG_VER!"
     )
 )
-echo.
 
-REM Check if mod directory exists
-if not exist "!MOD_DIR!" (
-    echo ERROR: Mod directory not found: !MOD_DIR!
-    goto :eof
+if !PACKAGE_COUNT! EQU 0 (
+    echo ERROR: No packages found in packages\ directory!
+    goto :error
 )
 
-REM Check if PBO files exist
-set "PBO_COUNT=0"
-for %%F in ("!MOD_DIR!\Addons\*.pbo") do set /a PBO_COUNT+=1
+REM ============================================================
+REM Interactive selection (via PowerShell)
+REM ============================================================
 
-if !PBO_COUNT! EQU 0 (
-    echo ERROR: No PBO files found in !MOD_DIR!\Addons
-    echo Make sure DayZ Tools AddonBuilder is configured correctly.
-    goto :eof
-)
+set "MENU_OUTPUT=%TEMP%\_swarm_publish_menu.tmp"
 
-echo Found !PBO_COUNT! PBO files.
-echo.
-
-echo ========================================
-echo Step 2: Validating scripts
-echo ========================================
-echo.
-
-if "!SKIP_VALIDATE!"=="1" (
-    echo Skipping validate step ^(--skip-validate specified^)
-    echo.
-    goto :step3
-)
-
-REM Check if DAYZ_SERVER is set (required for validate)
-if not defined DAYZ_SERVER (
-    echo WARNING: DAYZ_SERVER environment variable not set!
-    echo Skipping script validate.
-    echo.
-    echo To enable validate, add to your .env file:
-    echo   DAYZ_SERVER=C:\Path\To\DayZServer
-    echo.
-    goto :step3
-)
-
-if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would execute: validate.bat --skip-build
-    echo.
-    goto :step3
-)
-
-echo Running script validate using DayZ Server...
-echo.
-
-call "%~dp0validate.bat" --skip-build
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\publish_prompt.ps1" ^
+    -Packages "!PACKAGE_LIST!" ^
+    -Versions "!VERSION_LIST!" ^
+    -OutputFile "!MENU_OUTPUT!"
 
 if !ERRORLEVEL! NEQ 0 (
     echo.
-    echo ERROR: Script validate failed!
-    echo.
-    echo Fix the script errors above before publishing.
-    echo You can skip validate with --skip-validate ^(not recommended^)
-    goto :eof
+    del "!MENU_OUTPUT!" >nul 2>&1
+    goto :end
 )
 
-echo.
-
-:step3
-echo ========================================
-echo Step 3: Signing PBO files
-echo ========================================
-echo.
-
-if "!SKIP_SIGN!"=="1" (
-    echo Skipping signing step ^(--skip-sign specified^)
-    echo.
-    goto :step4
+if not exist "!MENU_OUTPUT!" (
+    echo No packages selected!
+    goto :error
 )
 
-REM Create keys directory if it doesn't exist
-if not exist "!KEYS_DIR!" (
-    if "!DRY_RUN!"=="1" (
-        echo [DRY RUN] Would create keys directory: !KEYS_DIR!
-    ) else (
-        echo Creating keys directory: !KEYS_DIR!
-        mkdir "!KEYS_DIR!"
+REM ============================================================
+REM Process each selected package
+REM ============================================================
+
+echo.
+echo ========================================
+echo Publish Configuration
+echo ========================================
+
+REM Display selections
+for /f "usebackq tokens=1,* delims==" %%A in ("!MENU_OUTPUT!") do (
+    echo   %%A = %%B
+)
+echo ========================================
+echo.
+
+REM Process each package line from the menu output
+for /f "usebackq tokens=1,* delims==" %%A in ("!MENU_OUTPUT!") do (
+    set "PUB_PKG=%%A"
+    set "PUB_VERSION=%%B"
+    call :publish_package "!PUB_PKG!" "!PUB_VERSION!"
+    if !ERRORLEVEL! NEQ 0 (
+        echo.
+        echo ERROR: Publishing !PUB_PKG! failed!
+        echo.
     )
 )
 
-REM Check if keys exist, create if not
+del "!MENU_OUTPUT!" >nul 2>&1
+
+echo.
+echo ========================================
+echo Publish Complete
+echo ========================================
+echo.
+goto :end
+
+REM ============================================================
+REM SUBROUTINE: Publish a single package
+REM ============================================================
+:publish_package
+set "PKG=%~1"
+set "VERSION=%~2"
+
+echo ########################################
+echo Publishing: !PKG! v!VERSION!
+echo ########################################
+echo.
+
+set "PKG_DIR=%~dp0packages\!PKG!"
+set "MOD_DIR=%~dp0dist\@!PKG!"
+set "OUTPUT_DIR=!MOD_DIR!\Addons"
+
+REM ----------------------------------------
+REM Step 1: Update version file
+REM ----------------------------------------
+
+echo [Step 1/5] Updating version...
+echo !VERSION!> "!PKG_DIR!\.version"
+echo   Saved version !VERSION! to !PKG_DIR!\.version
+echo.
+
+REM ----------------------------------------
+REM Step 2: Build
+REM ----------------------------------------
+
+echo [Step 2/5] Building !PKG!...
+echo.
+
+if exist "!OUTPUT_DIR!" rmdir /s /q "!OUTPUT_DIR!"
+mkdir "!OUTPUT_DIR!"
+
+REM Count and build subfolders
+set ADDON_COUNT=0
+set ADDON_INDEX=0
+for /d %%D in ("!PKG_DIR!\*") do set /a ADDON_COUNT+=1
+
+if !ADDON_COUNT! EQU 0 (
+    echo   WARNING: No addon folders found in !PKG_DIR!
+) else (
+    for /d %%D in ("!PKG_DIR!\*") do (
+        set /a ADDON_INDEX+=1
+        set "ADDON_NAME=%%~nxD"
+        echo   [!ADDON_INDEX!/!ADDON_COUNT!] Building !ADDON_NAME!...
+
+        set "TEMP_SRC=!TEMP_DIR!\!ADDON_NAME!"
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!PREPROCESS_SCRIPT!" -SourceDir "%%D" -TempDir "!TEMP_SRC!" -Version "!VERSION!"
+
+        "!ADDON_BUILDER!" "!TEMP_SRC!" "!OUTPUT_DIR!" -clear -packonly
+
+        if !ERRORLEVEL! NEQ 0 (
+            echo   ERROR: !ADDON_NAME! build failed!
+            exit /b 1
+        )
+        echo   !ADDON_NAME! OK
+    )
+)
+
+REM Process meta.cpp
+if exist "!PKG_DIR!\meta.cpp" (
+    echo.
+    echo   Processing meta.cpp...
+    if not exist "!TEMP_DIR!" mkdir "!TEMP_DIR!"
+    set "TEMP_META=!TEMP_DIR!\meta_!PKG!.cpp"
+    copy "!PKG_DIR!\meta.cpp" "!TEMP_META!" >nul
+
+    for /f %%T in ('powershell -NoProfile -Command "[DateTime]::UtcNow.Ticks"') do set "TIMESTAMP=%%T"
+
+    REM Try to get package-specific workshop ID, fall back to global, then 0
+    set "PUBLISHEDID=0"
+    if defined WORKSHOP_ID set "PUBLISHEDID=!WORKSHOP_ID!"
+
+    REM Check for package-specific workshop ID file
+    if exist "!PKG_DIR!\.workshop_id" (
+        set /p PUBLISHEDID=<"!PKG_DIR!\.workshop_id"
+    )
+
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$c = Get-Content '!TEMP_META!' -Raw; $c = $c -replace '%%VERSION%%', '!VERSION!'; $c = $c -replace '%%TIMESTAMP%%', '!TIMESTAMP!'; $c = $c -replace '%%PUBLISHEDID%%', '!PUBLISHEDID!'; Set-Content '!TEMP_META!' -Value $c -NoNewline"
+    copy "!TEMP_META!" "!MOD_DIR!\meta.cpp" >nul
+)
+
+REM Cleanup temp
+if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!"
+
+echo.
+echo   Build complete.
+echo.
+
+REM ----------------------------------------
+REM Step 3: Validate
+REM ----------------------------------------
+
+echo [Step 3/5] Validating scripts...
+
+if not defined DAYZ_SERVER (
+    echo   WARNING: DAYZ_SERVER not set, skipping validation.
+    echo.
+    goto :pub_sign
+)
+
+if not exist "!DAYZ_SERVER!\DayZServer_x64.exe" (
+    echo   WARNING: DayZ Server not found, skipping validation.
+    echo.
+    goto :pub_sign
+)
+
+REM Check if PBOs exist to validate
+set "PBO_CHECK=0"
+for %%F in ("!OUTPUT_DIR!\*.pbo") do set /a PBO_CHECK+=1
+
+if !PBO_CHECK! EQU 0 (
+    echo   No PBOs to validate.
+    echo.
+    goto :pub_sign
+)
+
+set "VALIDATE_DIR=%~dp0.validate_temp"
+set "VALIDATE_CFG_DIR=%~dp0validate"
+set "VALIDATE_PORT=2399"
+set "VALIDATE_TIMEOUT=15"
+
+set "VALIDATE_CFG="
+if exist "!VALIDATE_CFG_DIR!\serverDZ.cfg" (
+    set "VALIDATE_CFG=!VALIDATE_CFG_DIR!\serverDZ.cfg"
+) else if exist "!VALIDATE_CFG_DIR!\serverDZ.default.cfg" (
+    set "VALIDATE_CFG=!VALIDATE_CFG_DIR!\serverDZ.default.cfg"
+) else (
+    echo   WARNING: No validate config found, skipping validation.
+    echo.
+    goto :pub_sign
+)
+
+if exist "!VALIDATE_DIR!" rmdir /s /q "!VALIDATE_DIR!"
+mkdir "!VALIDATE_DIR!"
+copy "!VALIDATE_CFG!" "!VALIDATE_DIR!\serverDZ.cfg" >nul
+
+REM Build mod list for validation
+set "VAL_MOD_LIST=!MOD_DIR!"
+set "VALIDATE_MODS_DIR=%~dp0validate\mods"
+if defined MODS (
+    set "VAL_MOD_LIST="
+    for %%m in ("!MODS:;=" "!") do (
+        set "MOD_NAME=%%~m"
+        set "MOD_NAME=!MOD_NAME:"=!"
+        if exist "!VALIDATE_MODS_DIR!\!MOD_NAME!" (
+            if "!VAL_MOD_LIST!"=="" (
+                set "VAL_MOD_LIST=!VALIDATE_MODS_DIR!\!MOD_NAME!"
+            ) else (
+                set "VAL_MOD_LIST=!VAL_MOD_LIST!;!VALIDATE_MODS_DIR!\!MOD_NAME!"
+            )
+        )
+    )
+    set "VAL_MOD_LIST=!VAL_MOD_LIST!;!MOD_DIR!"
+) else (
+    if exist "!VALIDATE_MODS_DIR!" (
+        set "VAL_MOD_LIST="
+        for /d %%d in ("!VALIDATE_MODS_DIR!\@*") do (
+            if "!VAL_MOD_LIST!"=="" (
+                set "VAL_MOD_LIST=%%d"
+            ) else (
+                set "VAL_MOD_LIST=!VAL_MOD_LIST!;%%d"
+            )
+        )
+        set "VAL_MOD_LIST=!VAL_MOD_LIST!;!MOD_DIR!"
+    )
+)
+
+echo   Starting validation server...
+start "DayZScriptValidate" /B /MIN "!DAYZ_SERVER!\DayZServer_x64.exe" ^
+    "-mod=!VAL_MOD_LIST!" ^
+    -config=serverDZ.cfg ^
+    -port=!VALIDATE_PORT! ^
+    "-profiles=!VALIDATE_DIR!" ^
+    -doLogs ^
+    -adminLog
+
+timeout /t !VALIDATE_TIMEOUT! /nobreak >nul
+timeout /t 2 /nobreak >nul
+taskkill /FI "WINDOWTITLE eq DayZScriptValidate" /F >nul 2>&1
+timeout /t 3 /nobreak >nul
+taskkill /IM DayZServer_x64.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+REM Check for errors
+set "VAL_ERRORS="
+for %%f in ("!VALIDATE_DIR!\crash_*.log") do if exist "%%f" set "VAL_ERRORS=1"
+for %%f in ("!VALIDATE_DIR!\*.mdmp") do if exist "%%f" set "VAL_ERRORS=1"
+for %%f in ("!VALIDATE_DIR!\*.RPT") do (
+    if exist "%%f" (
+        findstr /i /c:"SCRIPT ERROR" /c:"SCRIPT  (E)" /c:"Compile error" /c:"Can't compile" /c:"Fatal error" /c:"ErrorModule" "%%f" >nul 2>&1
+        if !ERRORLEVEL! EQU 0 set "VAL_ERRORS=1"
+    )
+)
+
+if defined VAL_ERRORS (
+    echo   [ERROR] Script errors detected!
+    for %%f in ("!VALIDATE_DIR!\*.RPT") do (
+        if exist "%%f" (
+            findstr /i /n /c:"SCRIPT ERROR" /c:"SCRIPT  (E)" /c:"Compile error" /c:"Fatal error" /c:"ErrorModule" "%%f"
+        )
+    )
+    echo.
+    echo   VALIDATION FAILED - Fix errors before publishing.
+    echo   Logs: !VALIDATE_DIR!
+    exit /b 1
+)
+
+echo   [OK] Validation passed.
+if exist "!VALIDATE_DIR!" rmdir /s /q "!VALIDATE_DIR!"
+echo.
+
+REM ----------------------------------------
+REM Step 4: Sign
+REM ----------------------------------------
+:pub_sign
+echo [Step 4/5] Signing PBOs...
+
+if not exist "!DS_SIGN_FILE!" (
+    echo   WARNING: DSSignFile.exe not found, skipping signing.
+    echo.
+    goto :pub_upload
+)
+
+REM Create keys if needed
 set "PRIVATE_KEY=!KEYS_DIR!\!KEY_NAME!.biprivatekey"
 set "PUBLIC_KEY=!KEYS_DIR!\!KEY_NAME!.bikey"
 
-echo Private key path: !PRIVATE_KEY!
-echo Public key path: !PUBLIC_KEY!
-echo.
-
 if not exist "!PRIVATE_KEY!" (
-    if "!DRY_RUN!"=="1" (
-        echo [DRY RUN] Would create new key pair: !KEY_NAME!
+    echo   Creating new key pair: !KEY_NAME!
+    if not exist "!KEYS_DIR!" mkdir "!KEYS_DIR!"
+    pushd "!KEYS_DIR!"
+    "!DS_CREATE_KEY!" !KEY_NAME!
+    popd
+    if not exist "!PRIVATE_KEY!" (
+        echo   ERROR: Failed to create key pair!
         echo.
-    ) else (
-        echo Creating new key pair: !KEY_NAME!
-        echo.
-        
-        pushd "!KEYS_DIR!"
-        "!DS_CREATE_KEY!" !KEY_NAME!
-        set "CREATE_RESULT=!ERRORLEVEL!"
-        popd
-        
-        if not exist "!PRIVATE_KEY!" (
-            echo ERROR: Failed to create key pair!
-            echo DSCreateKey exit code: !CREATE_RESULT!
-            goto :eof
-        )
-        
-        echo Key pair created successfully!
-        echo.
-        echo IMPORTANT: Keep your .biprivatekey file safe and SECRET!
-        echo            Only share the .bikey file with server owners.
-        echo.
+        goto :pub_upload
     )
-) else (
-    echo Using existing key pair: !KEY_NAME!
-    echo.
+    echo   Key pair created.
 )
 
-REM Create Keys folder in mod directory
-set "MOD_KEYS_DIR=!MOD_DIR!\Keys"
-if not exist "!MOD_KEYS_DIR!" (
-    if "!DRY_RUN!"=="1" (
-        echo [DRY RUN] Would create mod keys directory: !MOD_KEYS_DIR!
-    ) else (
-        echo Creating mod keys directory: !MOD_KEYS_DIR!
-        mkdir "!MOD_KEYS_DIR!"
-    )
+REM Create Keys folder in mod and copy public key
+set "MOD_KEYS=!MOD_DIR!\Keys"
+if not exist "!MOD_KEYS!" mkdir "!MOD_KEYS!"
+copy "!PUBLIC_KEY!" "!MOD_KEYS!\" >nul 2>&1
+
+REM Sign PBOs
+set SIGN_COUNT=0
+for %%F in ("!OUTPUT_DIR!\*.pbo") do (
+    echo   Signing: %%~nxF
+    del "!OUTPUT_DIR!\%%~nF.*.bisign" 2>nul
+    "!DS_SIGN_FILE!" "!PRIVATE_KEY!" "%%F"
+    set /a SIGN_COUNT+=1
 )
 
-REM Copy public key to mod's Keys folder
-if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would copy !KEY_NAME!.bikey to !MOD_KEYS_DIR!
-    echo.
-) else (
-    echo Copying public key to mod folder...
-    copy "!PUBLIC_KEY!" "!MOD_KEYS_DIR!\" >nul
-    if !ERRORLEVEL! NEQ 0 (
-        echo ERROR: Failed to copy public key!
-        goto :eof
-    )
-    echo   Copied: !KEY_NAME!.bikey to !MOD_KEYS_DIR!
-    echo.
+echo   Signed !SIGN_COUNT! PBO files.
+echo.
+
+REM ----------------------------------------
+REM Step 5: Publish to Workshop
+REM ----------------------------------------
+:pub_upload
+echo [Step 5/5] Publishing to Steam Workshop...
+
+REM Get workshop ID for this package
+set "PUB_WORKSHOP_ID="
+if exist "!PKG_DIR!\.workshop_id" (
+    set /p PUB_WORKSHOP_ID=<"!PKG_DIR!\.workshop_id"
 )
-
-REM Sign all PBO files
-echo Signing PBO files...
-set "SIGN_COUNT=0"
-set "SIGN_ERRORS=0"
-
-for %%F in ("!MOD_DIR!\Addons\*.pbo") do (
-    if "!DRY_RUN!"=="1" (
-        echo   [DRY RUN] Would sign: %%~nxF
-        set /a SIGN_COUNT+=1
-    ) else (
-        echo   Signing: %%~nxF
-        
-        REM Remove existing signatures for this PBO
-        del "!MOD_DIR!\Addons\%%~nF.*.bisign" 2>nul
-        
-        REM Sign the PBO
-        "!DS_SIGN_FILE!" "!PRIVATE_KEY!" "%%F"
-        set "SIGN_RESULT=!ERRORLEVEL!"
-        
-        if !SIGN_RESULT! EQU 0 (
-            set /a SIGN_COUNT+=1
-            echo     OK
-        ) else (
-            echo     FAILED - exit code !SIGN_RESULT!
-            set /a SIGN_ERRORS+=1
-        )
+if "!PUB_WORKSHOP_ID!"=="" (
+    if defined WORKSHOP_ID (
+        set "PUB_WORKSHOP_ID=!WORKSHOP_ID!"
     )
 )
 
-echo.
-if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would sign !SIGN_COUNT! PBO files.
-) else (
-    echo Signed !SIGN_COUNT! PBO files.
-)
-
-if !SIGN_ERRORS! GTR 0 (
-    echo WARNING: !SIGN_ERRORS! files failed to sign!
-)
-echo.
-
-REM List all signatures
-if "!DRY_RUN!"=="0" (
-    echo Signatures created:
-    for %%F in ("!MOD_DIR!\Addons\*.bisign") do (
-        echo   %%~nxF
-    )
+if "!PUB_WORKSHOP_ID!"=="" (
+    echo   WARNING: No Workshop ID found for !PKG!
     echo.
-)
-
-:step4
-
-echo ========================================
-echo Step 4: Publishing to Steam Workshop
-echo ========================================
-echo.
-
-if "!SKIP_PUBLISH!"=="1" (
-    echo Skipping Workshop publish ^(--skip-publish specified^)
+    echo   For first-time publishing:
+    echo     1. Open DayZ Tools Publisher GUI
+    echo     2. Create your mod item manually
+    echo     3. Save the Workshop ID to: !PKG_DIR!\.workshop_id
+    echo     4. Or add WORKSHOP_ID=XXXXXXXXXX to your .env file
     echo.
-    echo Your mod is ready at: !MOD_DIR!
+    echo   Mod is built and signed at: !MOD_DIR!
     echo.
-    echo To publish manually:
-    echo   1. Open DayZ Tools
-    echo   2. Go to Publisher
-    echo   3. Select mod folder: !MOD_DIR!
-    echo   4. Upload to Workshop
-    echo.
-    goto :done
+    exit /b 0
 )
 
-REM Check for Workshop ID
-if not defined WORKSHOP_ID (
-    echo ERROR: WORKSHOP_ID not set!
-    echo.
-    echo For first-time publishing:
-    echo   1. Open DayZ Tools Publisher GUI
-    echo   2. Create your mod item manually
-    echo   3. Note the Workshop ID from the URL
-    echo   4. Add WORKSHOP_ID=XXXXXXXXXX to your .env file
-    echo.
-    echo Your mod is built and signed at: !MOD_DIR!
-    goto :done
-)
+echo   Workshop ID: !PUB_WORKSHOP_ID!
 
-echo Workshop ID: !WORKSHOP_ID!
-echo Mod directory: !MOD_DIR!
-
-REM Prepare change note
-if "!CHANGELOG!"=="" (
-    set "CHANGELOG=Version !VERSION!"
-    echo Change note: Version !VERSION! ^(default^)
-) else (
-    echo Change note: !CHANGELOG!
-)
-echo.
-
-REM Verify mod directory exists
-if not exist "!MOD_DIR!" (
-    echo ERROR: Mod directory not found: !MOD_DIR!
-    echo Please build the mod first or remove --skip-build
-    goto :eof
-)
-
-REM Verify PBOs exist
-set "PBO_CHECK=0"
-for %%F in ("!MOD_DIR!\Addons\*.pbo") do set /a PBO_CHECK+=1
-if !PBO_CHECK! EQU 0 (
-    echo ERROR: No PBO files found in !MOD_DIR!\Addons
-    echo Please build the mod first.
-    goto :eof
-)
-
-echo Found !PBO_CHECK! PBO files to publish.
-echo.
-
-REM Create/update mod.cpp for Workshop
-if exist "!MOD_DIR!\mod.cpp" (
-    echo Updating mod.cpp version...
-) else (
-    echo Creating mod.cpp...
-)
-call :write_mod_cpp
-goto :after_mod_cpp
-
-:write_mod_cpp
+REM Create/update mod.cpp
 (
-    echo name = "Swarm";
+    echo name = "!PKG!";
     echo picture = "";
     echo actionName = "";
     echo action = "";
     echo logo = "";
     echo logoSmall = "";
     echo logoOver = "";
-    echo tooltip = "Swarm - DayZ Mod Collection";
-    echo overview = "A collection of DayZ mods including SwarmTweaks, SwarmAnimals, and SwarmEarplugs.";
-    echo author = "Swarm Team";
+    echo tooltip = "!PKG! - DayZ Mod";
+    echo overview = "";
+    echo author = "";
     echo version = "!VERSION!";
 ) > "!MOD_DIR!\mod.cpp"
-goto :eof
 
-:after_mod_cpp
-echo.
-
-if "!DRY_RUN!"=="1" (
-    echo [DRY RUN] Would publish to Steam Workshop using SteamCMD:
-    echo   Mod Directory: !MOD_DIR!
-    echo   Change Note: !CHANGELOG!
-    echo   Workshop ID: !WORKSHOP_ID!
-    echo   Workshop URL: https://steamcommunity.com/sharedfiles/filedetails/?id=!WORKSHOP_ID!
-    echo.
-    goto :done
-)
-
-REM Check for SteamCMD in scripts folder
+REM Check for SteamCMD
 set "STEAMCMD=%~dp0scripts\steamcmd.exe"
 if not exist "!STEAMCMD!" (
-    echo ERROR: steamcmd.exe not found at: !STEAMCMD!
+    echo   ERROR: steamcmd.exe not found at: !STEAMCMD!
+    echo   Please download SteamCMD and place it in the scripts folder.
     echo.
-    echo Please download SteamCMD and place steamcmd.exe in the scripts folder.
-    echo Download from: https://developer.valvesoftware.com/wiki/SteamCMD
-    echo.
-    echo Your mod is built and signed at: !MOD_DIR!
-    goto :done
+    echo   Mod is built and signed at: !MOD_DIR!
+    exit /b 0
 )
 
-REM Check for Steam credentials
 if not defined STEAM_USERNAME (
-    echo ERROR: STEAM_USERNAME is required for SteamCMD publishing!
-    echo.
-    echo Add to your .env file:
-    echo   STEAM_USERNAME=your_steam_username
-    echo.
-    goto :done
+    echo   ERROR: STEAM_USERNAME not set in .env file.
+    echo   Mod is built and signed at: !MOD_DIR!
+    exit /b 0
 )
 
-echo Steam username: !STEAM_USERNAME!
-echo.
+echo   Steam user: !STEAM_USERNAME!
 
-REM Create VDF file for Workshop upload
-set "VDF_FILE=%~dp0workshop_upload.vdf"
-echo Creating Workshop upload configuration...
+REM Set changelog
+set "CHANGELOG=Version !VERSION!"
 
+REM Create VDF file
+set "VDF_FILE=%~dp0workshop_upload_!PKG!.vdf"
 (
     echo "workshopitem"
     echo {
     echo     "appid" "221100"
-    echo     "publishedfileid" "!WORKSHOP_ID!"
+    echo     "publishedfileid" "!PUB_WORKSHOP_ID!"
     echo     "contentfolder" "!MOD_DIR!"
     echo     "changenote" "!CHANGELOG!"
     echo }
 ) > "!VDF_FILE!"
 
 echo.
-echo Starting SteamCMD Workshop upload...
+echo   Uploading to Steam Workshop...
 echo.
 
-REM Run SteamCMD
-REM Note: If Steam Guard is enabled, you may need to enter the code
 "!STEAMCMD!" +login "!STEAM_USERNAME!" +workshop_build_item "!VDF_FILE!" +quit
 set "PUB_RESULT=!ERRORLEVEL!"
 
-echo.
-
-REM Clean up VDF file
 del "!VDF_FILE!" 2>nul
 
 if !PUB_RESULT! EQU 0 (
     echo.
-    echo SUCCESS: Mod published to Steam Workshop!
-    echo.
-    echo View your mod: https://steamcommunity.com/sharedfiles/filedetails/?id=!WORKSHOP_ID!
+    echo   SUCCESS: !PKG! v!VERSION! published!
+    echo   View: https://steamcommunity.com/sharedfiles/filedetails/?id=!PUB_WORKSHOP_ID!
 ) else (
     echo.
-    echo WARNING: SteamCMD returned error code !PUB_RESULT!
-    echo.
-    echo Common issues and solutions:
-    echo.
-    echo   [Steam Guard?]
-    echo     - Run SteamCMD manually once to cache credentials:
-    echo       !STEAMCMD! +login !STEAM_USERNAME! +quit
-    echo     - Enter your Steam Guard code when prompted
-    echo     - Credentials will be cached for future runs
-    echo.
-    echo   [Wrong password?]
-    echo     - SteamCMD uses cached credentials from previous login
-    echo     - Run the manual login above to update credentials
-    echo.
-    echo   [First time publishing?]
-    echo     - You must create the Workshop item manually first
-    echo     - Use DayZ Tools Publisher GUI to create the initial item
-    echo     - Then add the Workshop ID to your .env file
-    echo.
-    echo Your mod is built and signed at: !MOD_DIR!
+    echo   WARNING: SteamCMD returned error code !PUB_RESULT!
+    echo   You may need to run SteamCMD manually to cache credentials.
 )
 
-:done
 echo.
-echo ========================================
-echo Publish Complete
-echo ========================================
+echo   Summary:
+echo     Package:    !PKG!
+echo     Version:    !VERSION!
+echo     Mod folder: !MOD_DIR!
+echo     Workshop:   https://steamcommunity.com/sharedfiles/filedetails/?id=!PUB_WORKSHOP_ID!
+if defined SIGN_COUNT echo     PBOs signed: !SIGN_COUNT!
 echo.
-echo Summary:
-echo   Version: !VERSION!
-echo   Key: !KEY_NAME!
-echo   Mod folder: !MOD_DIR!
-if "!SKIP_SIGN!"=="0" (
-    echo   Public key: !MOD_KEYS_DIR!\!KEY_NAME!.bikey
-    echo   PBOs signed: !SIGN_COUNT!
-)
-if defined WORKSHOP_ID (
-    echo   Workshop ID: !WORKSHOP_ID!
-    echo   Workshop URL: https://steamcommunity.com/sharedfiles/filedetails/?id=!WORKSHOP_ID!
-)
-if not "!CHANGELOG!"=="" (
-    echo   Change note: !CHANGELOG!
-)
-if defined PUB_RESULT (
-    echo   SteamCMD exit code: !PUB_RESULT!
-)
-if "!DRY_RUN!"=="1" (
-    echo.
-    echo   [DRY RUN - No actual changes were made]
-)
-echo.
-echo Server owners need the .bikey file to verify your mod.
-echo.
+exit /b !PUB_RESULT!
 
-:eof
+REM ============================================================
+REM Error / End handlers
+REM ============================================================
+
+:error
+echo.
 endlocal
-pause
+exit /b 1
+
+:end
+endlocal
+exit /b 0
