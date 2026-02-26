@@ -6,11 +6,11 @@
  * (GetCurrentTimeFormatted, GetCurrentTimestampISO, FormatTwoDigits).
  *
  * Usage:
- *   string iso       = Time.ISO();             // "2026-02-27T13:05:00Z"
- *   string formatted = Time.Formatted();        // "27/02/2026 13:05:00"
+ *   string iso       = TimeUtil.ISO();             // "2026-02-27T13:05:00Z"
+ *   string formatted = TimeUtil.Formatted();        // "27/02/2026 13:05:00"
  *   string padded    = Time.PadTwo(7);          // "07"
  */
-class Time
+class TimeUtil
 {
 	// ---------------------------------------------------------------
 	// Padding helper
@@ -43,13 +43,7 @@ class Time
 		GetYearMonthDay(year, month, day);
 		GetHourMinuteSecond(hour, minute, second);
 
-		return year.ToString()
-			+ "-" + PadTwo(month)
-			+ "-" + PadTwo(day)
-			+ "T" + PadTwo(hour)
-			+ ":" + PadTwo(minute)
-			+ ":" + PadTwo(second)
-			+ "Z";
+		return year.ToString() + "-" + PadTwo(month) + "-" + PadTwo(day) + "T" + PadTwo(hour) + ":" + PadTwo(minute) + ":" + PadTwo(second) + "Z";
 	}
 
 	/**
@@ -63,12 +57,7 @@ class Time
 		GetYearMonthDay(year, month, day);
 		GetHourMinuteSecond(hour, minute, second);
 
-		return PadTwo(day)
-			+ "/" + PadTwo(month)
-			+ "/" + year.ToString()
-			+ " " + PadTwo(hour)
-			+ ":" + PadTwo(minute)
-			+ ":" + PadTwo(second);
+		return PadTwo(day) + "/" + PadTwo(month) + "/" + year.ToString() + " " + PadTwo(hour) + ":" + PadTwo(minute) + ":" + PadTwo(second);
 	}
 
 	/**
