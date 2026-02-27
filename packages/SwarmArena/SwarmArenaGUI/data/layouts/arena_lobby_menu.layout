@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layoutset>
+    <!-- Arena Lobby Menu - Main interface for queue & party management -->
+    <spacer name="RootFrame" halign="fill" valign="fill" color="0,0,0,180">
+        
+        <!-- Header -->
+        <frame name="HeaderPanel" halign="fill" valign="top" posX="0" posY="20" sizeX="0" sizeY="60">
+            <text name="TitleText" halign="center" valign="center" style="headline" text="SWARM ARENA" />
+        </frame>
+        
+        <!-- Left Panel - Queue Selection -->
+        <frame name="QueuePanel" halign="left" valign="center" posX="60" posY="0" sizeX="320" sizeY="400">
+            <spacer name="QueueBackground" halign="fill" valign="fill" color="40,40,40,200" />
+            
+            <text name="QueueTitle" halign="center" valign="top" posY="15" style="title" text="QUEUE" />
+            
+            <!-- Queue buttons -->
+            <panel name="QueueButtonPanel" halign="fill" valign="fill" posY="60" sizeX="0" sizeY="0">
+                <button name="Btn1v1" halign="center" posY="0" sizeX="200" sizeY="45" text="1v1 DUEL" />
+                <button name="Btn2v2" halign="center" posY="60" sizeX="200" sizeY="45" text="2v2 TEAM" />
+                <button name="Btn3v3" halign="center" posY="120" sizeX="200" sizeY="45" text="3v3 TEAM" />
+            </panel>
+            
+            <!-- Queue status -->
+            <text name="QueueStatus" halign="center" valign="bottom" posY="-60" style="small" text="Not in queue" />
+            <button name="BtnLeaveQueue" halign="center" valign="bottom" posY="-15" sizeX="150" sizeY="35" text="LEAVE QUEUE" />
+        </frame>
+        
+        <!-- Center Panel - Player Info / Match Stats -->
+        <frame name="CenterPanel" halign="center" valign="center" sizeX="360" sizeY="400">
+            <spacer name="CenterBackground" halign="fill" valign="fill" color="50,50,50,180" />
+            
+            <!-- Player stats -->
+            <text name="PlayerName" halign="center" valign="top" posY="20" style="title" text="Player Name" />
+            
+            <panel name="StatsPanel" halign="center" valign="top" posY="70" sizeX="280" sizeY="180">
+                <text name="LblBalance" halign="left" valign="top" posY="0" text="Balance:" />
+                <text name="ValBalance" halign="right" valign="top" posY="0" text="$0" />
+                
+                <text name="LblWins" halign="left" valign="top" posY="30" text="Wins:" />
+                <text name="ValWins" halign="right" valign="top" posY="30" text="0" />
+                
+                <text name="LblLosses" halign="left" valign="top" posY="60" text="Losses:" />
+                <text name="ValLosses" halign="right" valign="top" posY="60" text="0" />
+                
+                <text name="LblKills" halign="left" valign="top" posY="90" text="Total Kills:" />
+                <text name="ValKills" halign="right" valign="top" posY="90" text="0" />
+            </panel>
+            
+            <!-- Preset editor button -->
+            <button name="BtnPresetEditor" halign="center" valign="bottom" posY="-80" sizeX="200" sizeY="45" text="EDIT PRESETS" />
+            
+            <!-- Close button -->
+            <button name="BtnClose" halign="center" valign="bottom" posY="-20" sizeX="120" sizeY="35" text="CLOSE" />
+        </frame>
+        
+        <!-- Right Panel - Party -->
+        <frame name="PartyPanel" halign="right" valign="center" posX="-60" posY="0" sizeX="320" sizeY="400">
+            <spacer name="PartyBackground" halign="fill" valign="fill" color="40,40,40,200" />
+            
+            <text name="PartyTitle" halign="center" valign="top" posY="15" style="title" text="PARTY" />
+            
+            <!-- Party members list -->
+            <panel name="PartyMemberList" halign="fill" valign="fill" posY="50" sizeX="0" sizeY="-140">
+                <text name="Member1" halign="center" valign="top" posY="10" text="" />
+                <text name="Member2" halign="center" valign="top" posY="40" text="" />
+                <text name="Member3" halign="center" valign="top" posY="70" text="" />
+            </panel>
+            
+            <!-- Party controls -->
+            <panel name="PartyControls" halign="fill" valign="bottom" sizeY="130">
+                <editbox name="InviteInput" halign="center" valign="top" posY="5" sizeX="200" sizeY="30" />
+                <button name="BtnInvite" halign="center" valign="top" posY="40" sizeX="150" sizeY="35" text="INVITE" />
+                <button name="BtnLeaveParty" halign="center" valign="top" posY="85" sizeX="150" sizeY="35" text="LEAVE PARTY" />
+            </panel>
+        </frame>
+        
+        <!-- Pending invites panel -->
+        <frame name="InvitesPanel" halign="center" valign="bottom" posY="-100" sizeX="400" sizeY="80">
+            <spacer name="InviteBackground" halign="fill" valign="fill" color="60,60,40,220" />
+            <text name="InviteText" halign="center" valign="top" posY="10" text="Party invite from: PlayerName" />
+            <button name="BtnAcceptInvite" halign="left" valign="bottom" posX="30" posY="-10" sizeX="100" sizeY="30" text="ACCEPT" />
+            <button name="BtnDeclineInvite" halign="right" valign="bottom" posX="-30" posY="-10" sizeX="100" sizeY="30" text="DECLINE" />
+        </frame>
+        
+    </spacer>
+</layoutset>

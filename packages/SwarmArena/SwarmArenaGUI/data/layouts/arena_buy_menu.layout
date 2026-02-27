@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layoutset>
+    <!-- Arena Buy Menu - In-match weapon/armor purchasing -->
+    <spacer name="RootFrame" halign="fill" valign="fill" color="0,0,0,160">
+        
+        <!-- Header with money display -->
+        <frame name="HeaderPanel" halign="fill" valign="top" sizeY="60">
+            <text name="TitleText" halign="left" valign="center" posX="40" style="headline" text="BUY MENU" />
+            <text name="MoneyText" halign="right" valign="center" posX="-40" style="headline" text="$800" color="100,255,100,255" />
+        </frame>
+        
+        <!-- Freeze time countdown -->
+        <frame name="FreezeTimer" halign="center" valign="top" posY="70" sizeX="200" sizeY="40">
+            <spacer name="TimerBg" halign="fill" valign="fill" color="60,0,0,200" />
+            <text name="TimerText" halign="center" valign="center" text="FREEZE: 15s" />
+        </frame>
+        
+        <!-- Main content -->
+        <frame name="ContentArea" halign="fill" valign="fill" posY="120" sizeY="-60">
+            
+            <!-- Left panel - Presets -->
+            <frame name="PresetsPanel" halign="left" valign="fill" posX="30" sizeX="280">
+                <spacer name="PresetsBg" halign="fill" valign="fill" color="40,40,40,180" />
+                <text name="PresetsTitle" halign="center" valign="top" posY="15" style="title" text="PRESETS" />
+                
+                <panel name="PresetButtons" halign="fill" valign="fill" posY="60">
+                    <button name="BtnPreset1" halign="center" posY="0" sizeX="220" sizeY="45" text="Preset 1 - $750" />
+                    <button name="BtnPreset2" halign="center" posY="55" sizeX="220" sizeY="45" text="Preset 2 - $1200" />
+                    <button name="BtnPreset3" halign="center" posY="110" sizeX="220" sizeY="45" text="Preset 3 - $1800" />
+                    <button name="BtnPreset4" halign="center" posY="165" sizeX="220" sizeY="45" text="Preset 4 - $2400" />
+                    <button name="BtnPreset5" halign="center" posY="220" sizeX="220" sizeY="45" text="Preset 5 - $3200" />
+                </panel>
+            </frame>
+            
+            <!-- Center panel - Armor -->
+            <frame name="ArmorPanel" halign="center" valign="fill" sizeX="280">
+                <spacer name="ArmorBg" halign="fill" valign="fill" color="50,50,50,180" />
+                <text name="ArmorTitle" halign="center" valign="top" posY="15" style="title" text="ARMOR" />
+                
+                <!-- Current armor display -->
+                <frame name="CurrentArmor" halign="center" valign="top" posY="55" sizeX="240" sizeY="50">
+                    <text name="LblCurrentArmor" halign="left" valign="center" text="Current:" />
+                    <text name="ValCurrentArmor" halign="right" valign="center" text="None" />
+                </frame>
+                
+                <panel name="ArmorButtons" halign="fill" valign="fill" posY="115">
+                    <button name="BtnArmorLight" halign="center" posY="0" sizeX="220" sizeY="50" text="Light Armor - $400" />
+                    <button name="BtnArmorMedium" halign="center" posY="60" sizeX="220" sizeY="50" text="Medium Armor - $650" />
+                    <button name="BtnArmorHeavy" halign="center" posY="120" sizeX="220" sizeY="50" text="Heavy Armor - $1000" />
+                </panel>
+                
+                <!-- Armor description -->
+                <text name="ArmorDesc" halign="center" valign="bottom" posY="-20" style="small" text="Armor reduces incoming damage" />
+            </frame>
+            
+            <!-- Right panel - Quick buy individual items -->
+            <frame name="QuickBuyPanel" halign="right" valign="fill" posX="-30" sizeX="280">
+                <spacer name="QuickBuyBg" halign="fill" valign="fill" color="40,40,40,180" />
+                <text name="QuickBuyTitle" halign="center" valign="top" posY="15" style="title" text="QUICK BUY" />
+                
+                <!-- Individual items scrollable list -->
+                <scrollPanel name="QuickBuyList" halign="fill" valign="fill" posY="55" sizeY="-10">
+                    <!-- Populated dynamically with individual weapons/items -->
+                </scrollPanel>
+            </frame>
+            
+        </frame>
+        
+        <!-- Footer -->
+        <frame name="FooterPanel" halign="fill" valign="bottom" sizeY="50">
+            <text name="BuyHint" halign="center" valign="center" style="small" text="Press B to close | Items drop if you already have one" />
+        </frame>
+        
+    </spacer>
+</layoutset>

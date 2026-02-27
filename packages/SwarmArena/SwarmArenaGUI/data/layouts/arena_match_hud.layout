@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layoutset>
+    <!-- Arena Match HUD - Round info, scores, timer, money -->
+    <spacer name="RootFrame" halign="fill" valign="fill">
+        
+        <!-- Top center - Round info & Timer -->
+        <frame name="TopPanel" halign="center" valign="top" posY="20" sizeX="400" sizeY="80">
+            <!-- Round number -->
+            <text name="RoundText" halign="center" valign="top" style="title" text="ROUND 1" />
+            
+            <!-- Score display -->
+            <frame name="ScorePanel" halign="center" valign="top" posY="35" sizeX="200" sizeY="30">
+                <text name="TeamAScore" halign="left" valign="center" posX="20" style="headline" text="0" color="100,150,255,255" />
+                <text name="ScoreSeparator" halign="center" valign="center" text="-" />
+                <text name="TeamBScore" halign="right" valign="center" posX="-20" style="headline" text="0" color="255,100,100,255" />
+            </frame>
+            
+            <!-- Timer (freeze time / round time) -->
+            <frame name="TimerPanel" halign="center" valign="bottom" sizeX="120" sizeY="25">
+                <spacer name="TimerBg" halign="fill" valign="fill" color="0,0,0,150" />
+                <text name="TimerText" halign="center" valign="center" text="1:30" />
+            </frame>
+        </frame>
+        
+        <!-- Top left - Team A players -->
+        <frame name="TeamAPanel" halign="left" valign="top" posX="20" posY="100" sizeX="200" sizeY="120">
+            <text name="TeamATitle" halign="left" valign="top" text="YOUR TEAM" style="small" color="100,150,255,255" />
+            <panel name="TeamAPlayers" halign="fill" valign="fill" posY="20">
+                <text name="TeamAPlayer1" halign="left" valign="top" posY="0" text="" />
+                <text name="TeamAPlayer2" halign="left" valign="top" posY="22" text="" />
+                <text name="TeamAPlayer3" halign="left" valign="top" posY="44" text="" />
+            </panel>
+        </frame>
+        
+        <!-- Top right - Team B players -->
+        <frame name="TeamBPanel" halign="right" valign="top" posX="-20" posY="100" sizeX="200" sizeY="120">
+            <text name="TeamBTitle" halign="right" valign="top" text="ENEMY TEAM" style="small" color="255,100,100,255" />
+            <panel name="TeamBPlayers" halign="fill" valign="fill" posY="20">
+                <text name="TeamBPlayer1" halign="right" valign="top" posY="0" text="" />
+                <text name="TeamBPlayer2" halign="right" valign="top" posY="22" text="" />
+                <text name="TeamBPlayer3" halign="right" valign="top" posY="44" text="" />
+            </panel>
+        </frame>
+        
+        <!-- Bottom left - Money display -->
+        <frame name="MoneyPanel" halign="left" valign="bottom" posX="20" posY="-20" sizeX="180" sizeY="50">
+            <spacer name="MoneyBg" halign="fill" valign="fill" color="0,0,0,120" />
+            <text name="MoneyLabel" halign="left" valign="center" posX="10" text="$" style="headline" color="100,255,100,255" />
+            <text name="MoneyValue" halign="left" valign="center" posX="30" style="headline" text="800" color="100,255,100,255" />
+        </frame>
+        
+        <!-- Bottom center - Buy prompt during freeze -->
+        <frame name="BuyPrompt" halign="center" valign="bottom" posY="-30" sizeX="300" sizeY="40">
+            <spacer name="BuyPromptBg" halign="fill" valign="fill" color="0,0,0,150" />
+            <text name="BuyPromptText" halign="center" valign="center" text="Press B to open Buy Menu" />
+        </frame>
+        
+        <!-- Spectator info (when dead) -->
+        <frame name="SpectatorPanel" halign="center" valign="bottom" posY="-80" sizeX="350" sizeY="45">
+            <spacer name="SpecBg" halign="fill" valign="fill" color="0,0,0,180" />
+            <text name="SpectatingText" halign="center" valign="top" posY="5" text="SPECTATING" style="small" />
+            <text name="SpectateTarget" halign="center" valign="bottom" posY="-5" text="PlayerName (1/2)" />
+        </frame>
+        
+        <!-- Center announcements (round start, round end, etc.) -->
+        <frame name="AnnouncementPanel" halign="center" valign="center" sizeX="500" sizeY="120">
+            <text name="AnnouncementMain" halign="center" valign="center" style="headline" text="" />
+            <text name="AnnouncementSub" halign="center" valign="center" posY="40" style="title" text="" />
+        </frame>
+        
+        <!-- Kill feed (top right below enemy team) -->
+        <frame name="KillFeed" halign="right" valign="top" posX="-20" posY="230" sizeX="280" sizeY="150">
+            <panel name="KillFeedList" halign="fill" valign="fill">
+                <!-- Kill entries populated dynamically -->
+            </panel>
+        </frame>
+        
+    </spacer>
+</layoutset>

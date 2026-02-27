@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modded_inputs>
+    <inputs>
+        <actions>
+            <input name="UASwarmArenaSpectatePrev" loc="Spectate Previous Teammate" />
+            <input name="UASwarmArenaSpectateNext" loc="Spectate Next Teammate" />
+        </actions>
+    </inputs>
+    <preset name="KnM">
+        <input name="UASwarmArenaSpectatePrev">
+            <btn name="mouse0" />
+        </input>
+        <input name="UASwarmArenaSpectateNext">
+            <btn name="mouse1" />
+        </input>
+    </preset>
+</modded_inputs>

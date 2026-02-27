@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modded_inputs>
+    <inputs>
+        <actions>
+            <input name="UASwarmArenaLobbyMenu" loc="Arena Lobby Menu" />
+            <input name="UASwarmArenaBuyMenu" loc="Arena Buy Menu" />
+        </actions>
+    </inputs>
+    <preset name="KnM">
+        <input name="UASwarmArenaLobbyMenu">
+            <btn name="kV" />
+        </input>
+        <input name="UASwarmArenaBuyMenu">
+            <btn name="kB" />
+        </input>
+    </preset>
+</modded_inputs>

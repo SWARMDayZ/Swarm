@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layoutset>
+    <!-- Arena Preset Editor - Configure 5 loadout presets -->
+    <spacer name="RootFrame" halign="fill" valign="fill" color="0,0,0,200">
+        
+        <!-- Header -->
+        <frame name="HeaderPanel" halign="fill" valign="top" sizeY="60">
+            <text name="TitleText" halign="center" valign="center" style="headline" text="PRESET EDITOR" />
+            <button name="BtnBack" halign="left" valign="center" posX="20" sizeX="100" sizeY="35" text="< BACK" />
+        </frame>
+        
+        <!-- Preset tabs -->
+        <frame name="PresetTabs" halign="center" valign="top" posY="70" sizeX="600" sizeY="45">
+            <button name="TabPreset1" halign="left" posX="0" sizeX="110" sizeY="40" text="PRESET 1" />
+            <button name="TabPreset2" halign="left" posX="120" sizeX="110" sizeY="40" text="PRESET 2" />
+            <button name="TabPreset3" halign="left" posX="240" sizeX="110" sizeY="40" text="PRESET 3" />
+            <button name="TabPreset4" halign="left" posX="360" sizeX="110" sizeY="40" text="PRESET 4" />
+            <button name="TabPreset5" halign="left" posX="480" sizeX="110" sizeY="40" text="PRESET 5" />
+        </frame>
+        
+        <!-- Cost indicator (first preset max $800) -->
+        <frame name="CostPanel" halign="center" valign="top" posY="125" sizeX="400" sizeY="35">
+            <text name="LblCost" halign="left" valign="center" text="Total Cost:" />
+            <text name="ValCost" halign="center" valign="center" text="$0 / $800" />
+            <text name="CostWarning" halign="right" valign="center" text="" color="255,100,100,255" />
+        </frame>
+        
+        <!-- Main content area -->
+        <frame name="ContentArea" halign="fill" valign="fill" posY="170" sizeY="-80">
+            
+            <!-- Left side - Available items -->
+            <frame name="AvailableItems" halign="left" valign="fill" posX="30" sizeX="380">
+                <spacer name="AvailBg" halign="fill" valign="fill" color="40,40,40,180" />
+                <text name="AvailTitle" halign="center" valign="top" posY="10" style="title" text="AVAILABLE" />
+                
+                <!-- Category tabs -->
+                <frame name="CategoryTabs" halign="fill" valign="top" posY="45" sizeY="35">
+                    <button name="CatPrimary" halign="left" posX="10" sizeX="85" sizeY="30" text="PRIMARY" />
+                    <button name="CatSecondary" halign="left" posX="100" sizeX="90" sizeY="30" text="SECONDARY" />
+                    <button name="CatAttach" halign="left" posX="195" sizeX="90" sizeY="30" text="ATTACHMENTS" />
+                    <button name="CatMisc" halign="right" posX="-10" sizeX="70" sizeY="30" text="MISC" />
+                </frame>
+                
+                <!-- Item list (scrollable) -->
+                <scrollPanel name="AvailList" halign="fill" valign="fill" posY="90" sizeY="-10">
+                    <!-- Items populated dynamically -->
+                </scrollPanel>
+            </frame>
+            
+            <!-- Center - Transfer controls -->
+            <frame name="TransferControls" halign="center" valign="center" sizeX="80" sizeY="120">
+                <button name="BtnAddItem" halign="center" valign="top" sizeX="60" sizeY="40" text=">" />
+                <button name="BtnRemoveItem" halign="center" valign="bottom" sizeX="60" sizeY="40" text="<" />
+            </frame>
+            
+            <!-- Right side - Current loadout -->
+            <frame name="CurrentLoadout" halign="right" valign="fill" posX="-30" sizeX="380">
+                <spacer name="LoadoutBg" halign="fill" valign="fill" color="50,50,50,180" />
+                <text name="LoadoutTitle" halign="center" valign="top" posY="10" style="title" text="LOADOUT" />
+                
+                <!-- Loadout slots -->
+                <panel name="LoadoutSlots" halign="fill" valign="fill" posY="50" sizeY="-10">
+                    <!-- Primary weapon -->
+                    <frame name="SlotPrimary" halign="fill" valign="top" posY="10" sizeX="-20" sizeY="60">
+                        <text name="LblPrimary" halign="left" posX="10" valign="top" text="Primary:" />
+                        <panel name="PrimaryItem" halign="fill" valign="fill" posX="10" posY="20" sizeX="-10" sizeY="0" />
+                    </frame>
+                    
+                    <!-- Primary attachments -->
+                    <frame name="SlotPrimaryAttach" halign="fill" valign="top" posY="80" sizeX="-20" sizeY="80">
+                        <text name="LblPrimaryAttach" halign="left" posX="20" valign="top" text="Attachments:" style="small" />
+                        <panel name="PrimaryAttachList" halign="fill" valign="fill" posX="20" posY="20" sizeX="-20" sizeY="0" />
+                    </frame>
+                    
+                    <!-- Secondary weapon -->
+                    <frame name="SlotSecondary" halign="fill" valign="top" posY="170" sizeX="-20" sizeY="60">
+                        <text name="LblSecondary" halign="left" posX="10" valign="top" text="Secondary:" />
+                        <panel name="SecondaryItem" halign="fill" valign="fill" posX="10" posY="20" sizeX="-10" sizeY="0" />
+                    </frame>
+                    
+                    <!-- Secondary attachments -->
+                    <frame name="SlotSecondaryAttach" halign="fill" valign="top" posY="240" sizeX="-20" sizeY="60">
+                        <text name="LblSecondaryAttach" halign="left" posX="20" valign="top" text="Attachments:" style="small" />
+                        <panel name="SecondaryAttachList" halign="fill" valign="fill" posX="20" posY="20" sizeX="-20" sizeY="0" />
+                    </frame>
+                    
+                    <!-- Misc items -->
+                    <frame name="SlotMisc" halign="fill" valign="top" posY="310" sizeX="-20" sizeY="80">
+                        <text name="LblMisc" halign="left" posX="10" valign="top" text="Equipment:" />
+                        <panel name="MiscItems" halign="fill" valign="fill" posX="10" posY="20" sizeX="-10" sizeY="0" />
+                    </frame>
+                </panel>
+            </frame>
+            
+        </frame>
+        
+        <!-- Footer - Save button -->
+        <frame name="FooterPanel" halign="fill" valign="bottom" sizeY="70">
+            <button name="BtnSavePreset" halign="center" valign="center" sizeX="180" sizeY="45" text="SAVE PRESET" />
+        </frame>
+        
+    </spacer>
+</layoutset>
